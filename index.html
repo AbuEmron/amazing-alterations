@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🎵 Mega Music Maker 🎵</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+
+  :root {
+    --bg1: #1a0b3d;
+    --bg2: #2d1b69;
+    --card: rgba(255,255,255,0.08);
+  }
+
+  body {
+    font-family: 'Comic Sans MS', 'Chalkboard SE', 'Segoe UI', sans-serif;
+    background: linear-gradient(160deg, var(--bg1), var(--bg2) 60%, #0f2557);
+    min-height: 100vh;
+    color: #fff;
+    overflow-x: hidden;
+  }
+
+  .wrap { max-width: 900px; margin: 0 auto; padding: 16px 12px 80px; }
+
+  header { text-align: center; padding: 12px 0 4px; }
+  header h1 {
+    font-size: clamp(1.6rem, 6vw, 2.6rem);
+    background: linear-gradient(90deg, #ff6b6b, #ffd93d, #6bff8f, #6bc9ff, #d06bff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.4));
+  }
+  header p { opacity: 0.85; font-size: 1rem; margin-top: 4px; }
+
+  section {
+    background: var(--card);
+    border-radius: 24px;
+    padding: 16px;
+    margin-top: 18px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    border: 2px solid rgba(255,255,255,0.1);
+  }
+  section h2 { font-size: 1.3rem; margin-bottom: 12px; text-align: center; }
+
+  /* ---------- Sound pads ---------- */
+  .pads {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+  .pad {
+    aspect-ratio: 1;
+    border: none;
+    border-radius: 20px;
+    font-size: clamp(1.6rem, 7vw, 3rem);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    color: #fff;
+    font-family: inherit;
+    box-shadow: 0 6px 0 rgba(0,0,0,0.3);
+    transition: transform 0.05s, box-shadow 0.05s, filter 0.05s;
+    touch-action: manipulation;
+  }
+  .pad small { font-size: 0.7rem; font-weight: bold; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+  .pad:active, .pad.hit {
+    transform: translateY(4px) scale(0.96);
+    box-shadow: 0 2px 0 rgba(0,0,0,0.3);
+    filter: brightness(1.4);
+  }
+
+  /* ---------- Sequencer ---------- */
+  .seq-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .big-btn {
+    border: none;
+    border-radius: 18px;
+    padding: 14px 26px;
+    font-size: 1.3rem;
+    font-family: inherit;
+    font-weight: bold;
+    color: #fff;
+    cursor: pointer;
+    box-shadow: 0 5px 0 rgba(0,0,0,0.3);
+    transition: transform 0.05s, box-shadow 0.05s;
+    touch-action: manipulation;
+  }
+  .big-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,0.3); }
+  #playBtn { background: linear-gradient(135deg, #2fd66c, #14a04a); font-size: 1.6rem; padding: 14px 34px; }
+  #playBtn.playing { background: linear-gradient(135deg, #ff9a3d, #f06d1a); }
+  #magicBtn { background: linear-gradient(135deg, #b95bff, #7a2ff0); }
+  #clearBtn { background: linear-gradient(135deg, #5a6b8c, #3c4a66); }
+
+  .tempo-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0,0,0,0.25);
+    padding: 8px 14px;
+    border-radius: 16px;
+    font-size: 1.4rem;
+  }
+  .tempo-box input { width: 130px; accent-color: #ffd93d; }
+
+  .seq-grid { display: flex; flex-direction: column; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+  .seq-row { display: flex; gap: 4px; align-items: center; }
+  .seq-label {
+    font-size: 1.3rem;
+    min-width: 44px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .cell {
+    flex: 1;
+    min-width: 26px;
+    aspect-ratio: 1;
+    border: none;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.12);
+    cursor: pointer;
+    transition: background 0.08s, transform 0.08s;
+    touch-action: manipulation;
+  }
+  .cell:nth-child(4n+2) { background: rgba(255,255,255,0.18); }
+  .cell.on { box-shadow: inset 0 0 0 2px rgba(255,255,255,0.6); }
+  .cell.now { transform: scale(1.18); filter: brightness(1.5); }
+
+  /* ---------- Rainbow keys ---------- */
+  .keys { display: flex; gap: 6px; height: 150px; }
+  .key {
+    flex: 1;
+    border: none;
+    border-radius: 0 0 16px 16px;
+    cursor: pointer;
+    font-size: 1.5rem;
+    color: rgba(255,255,255,0.9);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 10px;
+    box-shadow: 0 5px 0 rgba(0,0,0,0.3);
+    transition: transform 0.05s, filter 0.05s;
+    font-family: inherit;
+    touch-action: manipulation;
+  }
+  .key:active, .key.hit { transform: translateY(4px); filter: brightness(1.5); }
+
+  /* ---------- Mic sampler ---------- */
+  .mic-pads { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .mic-pad {
+    aspect-ratio: 1;
+    border: 3px dashed rgba(255,255,255,0.4);
+    border-radius: 20px;
+    background: rgba(255,255,255,0.06);
+    color: #fff;
+    font-family: inherit;
+    font-size: clamp(1.4rem, 6vw, 2.4rem);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    transition: transform 0.05s, filter 0.05s;
+    touch-action: manipulation;
+  }
+  .mic-pad small { font-size: 0.65rem; opacity: 0.85; }
+  .mic-pad.recording { border-color: #ff4d4d; background: rgba(255,60,60,0.25); animation: pulse 0.6s infinite alternate; }
+  .mic-pad.ready { border-style: solid; border-color: #2fd66c; background: rgba(47,214,108,0.18); }
+  .mic-pad:active { transform: scale(0.95); filter: brightness(1.3); }
+  @keyframes pulse { from { box-shadow: 0 0 0 0 rgba(255,77,77,0.6); } to { box-shadow: 0 0 0 14px rgba(255,77,77,0); } }
+  .mic-hint { text-align: center; opacity: 0.8; font-size: 0.9rem; margin-top: 10px; }
+
+  /* ---------- Song recorder ---------- */
+  .rec-controls { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+  #recBtn { background: linear-gradient(135deg, #ff4d6d, #d1114a); }
+  #recBtn.recording { animation: pulse 0.6s infinite alternate; background: linear-gradient(135deg, #ff2222, #aa0000); }
+  #songs { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+  .song {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(0,0,0,0.25);
+    border-radius: 14px;
+    padding: 10px;
+    flex-wrap: wrap;
+  }
+  .song audio { flex: 1; min-width: 180px; height: 40px; }
+  .song a {
+    background: linear-gradient(135deg, #6bc9ff, #1a7fd4);
+    color: #fff;
+    text-decoration: none;
+    font-weight: bold;
+    padding: 10px 16px;
+    border-radius: 12px;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.3);
+  }
+
+  /* ---------- Fun bits ---------- */
+  .spark {
+    position: fixed;
+    pointer-events: none;
+    font-size: 1.6rem;
+    animation: fly 0.8s ease-out forwards;
+    z-index: 99;
+  }
+  @keyframes fly {
+    from { transform: translate(0, 0) scale(1); opacity: 1; }
+    to { transform: translate(var(--dx), -90px) scale(0.4); opacity: 0; }
+  }
+
+  footer { text-align: center; opacity: 0.6; margin-top: 24px; font-size: 0.85rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🎵 Mega Music Maker 🎵</h1>
+    <p>Tap anything. Make music. You can't get it wrong! 🌟</p>
+  </header>
+
+  <!-- SOUND PADS -->
+  <section>
+    <h2>🥁 Tap the Sound Pads!</h2>
+    <div class="pads" id="pads"></div>
+  </section>
+
+  <!-- BEAT MACHINE -->
+  <section>
+    <h2>🤖 Beat Machine — paint your beat!</h2>
+    <div class="seq-controls">
+      <button class="big-btn" id="playBtn">▶️ Play</button>
+      <button class="big-btn" id="magicBtn">✨ Magic Beat</button>
+      <button class="big-btn" id="clearBtn">🧹 Clear</button>
+      <div class="tempo-box">
+        🐢 <input type="range" id="tempo" min="60" max="180" value="110"> 🐇
+      </div>
+    </div>
+    <div class="seq-grid" id="seqGrid"></div>
+  </section>
+
+  <!-- RAINBOW KEYS -->
+  <section>
+    <h2>🌈 Rainbow Piano — every note sounds great!</h2>
+    <div class="keys" id="keys"></div>
+  </section>
+
+  <!-- MIC SAMPLER -->
+  <section>
+    <h2>🎤 My Sounds — record YOUR voice!</h2>
+    <div class="mic-pads" id="micPads"></div>
+    <p class="mic-hint">Hold a pad and make a silly sound 🗣️ — let go, then tap it to play!</p>
+  </section>
+
+  <!-- SONG RECORDER -->
+  <section>
+    <h2>💿 Record Your Song!</h2>
+    <div class="rec-controls">
+      <button class="big-btn" id="recBtn">🔴 Start Recording</button>
+    </div>
+    <div id="songs"></div>
+  </section>
+
+  <footer>Made with ❤️ — everything runs right in your browser, nothing to install!</footer>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  /* ================= Audio engine ================= */
+  let ctx = null;
+  let master = null;
+  let recDest = null;
+
+  function audio() {
+    if (!ctx) {
+      ctx = new (window.AudioContext || window.webkitAudioContext)();
+      master = ctx.createGain();
+      master.gain.value = 0.9;
+      const limiter = ctx.createDynamicsCompressor();
+      limiter.threshold.value = -12;
+      limiter.ratio.value = 12;
+      master.connect(limiter);
+      limiter.connect(ctx.destination);
+      recDest = ctx.createMediaStreamDestination();
+      limiter.connect(recDest);
+    }
+    if (ctx.state === 'suspended') ctx.resume();
+    return ctx;
+  }
+
+  function env(t, peak, decay) {
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(peak, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + decay);
+    g.connect(master);
+    return g;
+  }
+
+  function noiseBuffer() {
+    const buf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    return buf;
+  }
+  let _noise = null;
+  function noise(t, decay, filterType, freq, peak) {
+    if (!_noise) _noise = noiseBuffer();
+    const src = ctx.createBufferSource();
+    src.buffer = _noise;
+    const f = ctx.createBiquadFilter();
+    f.type = filterType;
+    f.frequency.value = freq;
+    src.connect(f);
+    f.connect(env(t, peak, decay));
+    src.start(t);
+    src.stop(t + decay + 0.05);
+  }
+
+  function tone(t, type, f0, f1, decay, peak) {
+    const o = ctx.createOscillator();
+    o.type = type;
+    o.frequency.setValueAtTime(f0, t);
+    if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t + decay * 0.8);
+    o.connect(env(t, peak, decay));
+    o.start(t);
+    o.stop(t + decay + 0.05);
+  }
+
+  /* ---- instruments (all synthesized, zero downloads) ---- */
+  const SOUNDS = {
+    kick:    t => tone(t, 'sine', 150, 40, 0.4, 1.0),
+    snare:   t => { noise(t, 0.18, 'bandpass', 1800, 0.7); tone(t, 'triangle', 200, 150, 0.12, 0.5); },
+    hat:     t => noise(t, 0.05, 'highpass', 7000, 0.4),
+    clap:    t => { for (let i = 0; i < 3; i++) noise(t + i * 0.02, 0.1, 'bandpass', 1200, 0.5); },
+    tom:     t => tone(t, 'sine', 220, 80, 0.3, 0.9),
+    bell:    t => { tone(t, 'square', 540, 540, 0.25, 0.25); tone(t, 'square', 810, 810, 0.25, 0.2); },
+    zap:     t => tone(t, 'sawtooth', 1400, 90, 0.22, 0.4),
+    boing:   t => { tone(t, 'sine', 130, 420, 0.15, 0.6); tone(t + 0.13, 'sine', 420, 150, 0.25, 0.5); },
+    pop:     t => tone(t, 'sine', 500, 100, 0.08, 0.8),
+    whistle: t => { tone(t, 'sine', 900, 1500, 0.15, 0.35); tone(t + 0.14, 'sine', 1500, 900, 0.2, 0.3); },
+    shaker:  t => noise(t, 0.08, 'highpass', 5000, 0.5),
+    robot:   t => {
+      const o = ctx.createOscillator(); o.type = 'square'; o.frequency.value = 110;
+      const lfo = ctx.createOscillator(); lfo.frequency.value = 28;
+      const lg = ctx.createGain(); lg.gain.value = 0.3;
+      lfo.connect(lg);
+      const g = env(t, 0.35, 0.35);
+      lg.connect(g.gain);
+      o.connect(g);
+      o.start(t); lfo.start(t);
+      o.stop(t + 0.4); lfo.stop(t + 0.4);
+    },
+  };
+
+  function play(name, t) {
+    audio();
+    SOUNDS[name](t !== undefined ? t : ctx.currentTime);
+  }
+
+  /* ================= Sparkles ================= */
+  const SPARKS = ['✨', '⭐', '🌟', '💥', '🎵', '🎶', '💫'];
+  function sparkle(x, y) {
+    const s = document.createElement('span');
+    s.className = 'spark';
+    s.textContent = SPARKS[Math.floor(Math.random() * SPARKS.length)];
+    s.style.left = x + 'px';
+    s.style.top = y + 'px';
+    s.style.setProperty('--dx', (Math.random() * 120 - 60) + 'px');
+    document.body.appendChild(s);
+    setTimeout(() => s.remove(), 800);
+  }
+  function sparkleAt(el) {
+    const r = el.getBoundingClientRect();
+    sparkle(r.left + r.width / 2, r.top + r.height / 3);
+  }
+
+  /* ================= Sound pads ================= */
+  const PADS = [
+    { name: 'kick',    emoji: '🥁', label: 'Boom',    color: '#e74c3c', key: '1' },
+    { name: 'snare',   emoji: '🪘', label: 'Bap',     color: '#e67e22', key: '2' },
+    { name: 'hat',     emoji: '🎩', label: 'Tss',     color: '#f1c40f', key: '3' },
+    { name: 'clap',    emoji: '👏', label: 'Clap',    color: '#2ecc71', key: '4' },
+    { name: 'tom',     emoji: '🍅', label: 'Dum',     color: '#1abc9c', key: '5' },
+    { name: 'bell',    emoji: '🔔', label: 'Ding',    color: '#3498db', key: '6' },
+    { name: 'zap',     emoji: '⚡', label: 'Zap',     color: '#9b59b6', key: '7' },
+    { name: 'boing',   emoji: '🐸', label: 'Boing',   color: '#e84393', key: '8' },
+    { name: 'pop',     emoji: '🫧', label: 'Pop',     color: '#fd79a8', key: 'q' },
+    { name: 'whistle', emoji: '🐦', label: 'Tweet',   color: '#00b894', key: 'w' },
+    { name: 'shaker',  emoji: '🌾', label: 'Shake',   color: '#fdcb6e', key: 'e' },
+    { name: 'robot',   emoji: '🤖', label: 'Robot',   color: '#636e72', key: 'r' },
+  ];
+
+  const padEls = {};
+  const padsBox = document.getElementById('pads');
+  PADS.forEach(p => {
+    const b = document.createElement('button');
+    b.className = 'pad';
+    b.style.background = `linear-gradient(135deg, ${p.color}, ${p.color}99)`;
+    b.innerHTML = `${p.emoji}<small>${p.label}</small>`;
+    b.addEventListener('pointerdown', () => { play(p.name); flash(b); sparkleAt(b); });
+    padsBox.appendChild(b);
+    padEls[p.key] = { el: b, name: p.name };
+  });
+
+  function flash(el) {
+    el.classList.add('hit');
+    setTimeout(() => el.classList.remove('hit'), 100);
+  }
+
+  /* ================= Beat machine ================= */
+  const STEPS = 16;
+  const ROWS = [
+    { name: 'kick',   emoji: '🥁', color: '#e74c3c' },
+    { name: 'snare',  emoji: '🪘', color: '#e67e22' },
+    { name: 'hat',    emoji: '🎩', color: '#f1c40f' },
+    { name: 'clap',   emoji: '👏', color: '#2ecc71' },
+    { name: 'tom',    emoji: '🍅', color: '#1abc9c' },
+    { name: 'bell',   emoji: '🔔', color: '#3498db' },
+  ];
+  const grid = ROWS.map(() => new Array(STEPS).fill(false));
+  const cellEls = [];
+
+  const seqGrid = document.getElementById('seqGrid');
+  ROWS.forEach((row, r) => {
+    const rowEl = document.createElement('div');
+    rowEl.className = 'seq-row';
+    const label = document.createElement('div');
+    label.className = 'seq-label';
+    label.textContent = row.emoji;
+    rowEl.appendChild(label);
+    cellEls[r] = [];
+    for (let s = 0; s < STEPS; s++) {
+      const c = document.createElement('button');
+      c.className = 'cell';
+      c.addEventListener('pointerdown', () => {
+        grid[r][s] = !grid[r][s];
+        paintCell(r, s);
+        if (grid[r][s]) play(row.name);
+      });
+      rowEl.appendChild(c);
+      cellEls[r][s] = c;
+    }
+    seqGrid.appendChild(rowEl);
+  });
+
+  function paintCell(r, s) {
+    const c = cellEls[r][s];
+    c.classList.toggle('on', grid[r][s]);
+    c.style.background = grid[r][s] ? ROWS[r].color : '';
+  }
+
+  /* --- scheduler (lookahead so timing stays tight) --- */
+  let playing = false;
+  let step = 0;
+  let nextTime = 0;
+  let timer = null;
+  const tempoSlider = document.getElementById('tempo');
+
+  function stepDur() { return 60 / Number(tempoSlider.value) / 4; }
+
+  function tick() {
+    while (nextTime < ctx.currentTime + 0.12) {
+      const s = step;
+      for (let r = 0; r < ROWS.length; r++) {
+        if (grid[r][s]) SOUNDS[ROWS[r].name](nextTime);
+      }
+      const delay = Math.max(0, (nextTime - ctx.currentTime) * 1000);
+      setTimeout(() => highlight(s), delay);
+      step = (step + 1) % STEPS;
+      nextTime += stepDur();
+    }
+  }
+
+  let lastCol = -1;
+  function highlight(s) {
+    if (!playing) return;
+    if (lastCol >= 0) cellEls.forEach(row => row[lastCol].classList.remove('now'));
+    cellEls.forEach(row => row[s].classList.add('now'));
+    lastCol = s;
+  }
+
+  const playBtn = document.getElementById('playBtn');
+  playBtn.addEventListener('click', () => {
+    audio();
+    playing = !playing;
+    if (playing) {
+      step = 0;
+      nextTime = ctx.currentTime + 0.06;
+      timer = setInterval(tick, 30);
+      playBtn.textContent = '⏸️ Stop';
+      playBtn.classList.add('playing');
+    } else {
+      clearInterval(timer);
+      if (lastCol >= 0) cellEls.forEach(row => row[lastCol].classList.remove('now'));
+      lastCol = -1;
+      playBtn.textContent = '▶️ Play';
+      playBtn.classList.remove('playing');
+    }
+  });
+
+  document.getElementById('clearBtn').addEventListener('click', () => {
+    for (let r = 0; r < ROWS.length; r++)
+      for (let s = 0; s < STEPS; s++) { grid[r][s] = false; paintCell(r, s); }
+  });
+
+  /* --- magic beat: always fills something that sounds good --- */
+  document.getElementById('magicBtn').addEventListener('click', e => {
+    audio();
+    const chance = [
+      s => (s % 4 === 0 ? 0.95 : s % 2 === 0 ? 0.2 : 0.05),   // kick on the beat
+      s => (s % 8 === 4 ? 0.95 : 0.06),                        // snare on 2 & 4
+      s => (s % 2 === 0 ? 0.8 : 0.25),                         // hats drive it
+      s => (s % 8 === 6 ? 0.5 : 0.05),                         // claps as spice
+      s => (s % 4 === 3 ? 0.3 : 0.04),                         // tom fills
+      s => (s % 8 === 2 ? 0.35 : 0.03),                        // bell sparkle
+    ];
+    for (let r = 0; r < ROWS.length; r++)
+      for (let s = 0; s < STEPS; s++) {
+        grid[r][s] = Math.random() < chance[r](s);
+        paintCell(r, s);
+      }
+    sparkleAt(e.currentTarget);
+    if (!playing) playBtn.click();
+  });
+
+  /* ================= Rainbow piano (pentatonic = no wrong notes) ================= */
+  const NOTES = [
+    { f: 523.25, color: '#ff5f5f', key: 'a' },
+    { f: 587.33, color: '#ff9f43', key: 's' },
+    { f: 659.25, color: '#ffd93d', key: 'd' },
+    { f: 783.99, color: '#4cd964', key: 'f' },
+    { f: 880.00, color: '#34c8c8', key: 'g' },
+    { f: 1046.5, color: '#4c8dff', key: 'h' },
+    { f: 1174.7, color: '#9b59ff', key: 'j' },
+    { f: 1318.5, color: '#ff6bd6', key: 'k' },
+  ];
+
+  function playNote(freq) {
+    audio();
+    const t = ctx.currentTime;
+    tone(t, 'sine', freq, freq, 0.7, 0.5);
+    tone(t, 'sine', freq * 2, freq * 2, 0.4, 0.12);
+  }
+
+  const keysBox = document.getElementById('keys');
+  const keyEls = {};
+  NOTES.forEach((n, i) => {
+    const k = document.createElement('button');
+    k.className = 'key';
+    k.style.background = `linear-gradient(180deg, ${n.color}, ${n.color}bb)`;
+    k.style.height = (100 - i * 6) + '%';
+    k.style.alignSelf = 'flex-end';
+    k.textContent = ['🎈','🍓','🌞','🍀','🐬','🫐','🍇','🌸'][i];
+    k.addEventListener('pointerdown', () => { playNote(n.f); flash(k); sparkleAt(k); });
+    keysBox.appendChild(k);
+    keyEls[n.key] = { el: k, f: n.f };
+  });
+
+  /* ================= Keyboard shortcuts (for big kids) ================= */
+  document.addEventListener('keydown', e => {
+    if (e.repeat) return;
+    const key = e.key.toLowerCase();
+    if (padEls[key]) { play(padEls[key].name); flash(padEls[key].el); sparkleAt(padEls[key].el); }
+    else if (keyEls[key]) { playNote(keyEls[key].f); flash(keyEls[key].el); sparkleAt(keyEls[key].el); }
+    else if (key === ' ') { e.preventDefault(); playBtn.click(); }
+  });
+
+  /* ================= Mic sampler ================= */
+  const MIC_EMOJI = ['🦖', '🐱', '🚀', '🎉'];
+  let micStream = null;
+
+  async function getMic() {
+    if (!micStream) {
+      micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    }
+    return micStream;
+  }
+
+  const micBox = document.getElementById('micPads');
+  MIC_EMOJI.forEach(emoji => {
+    const pad = document.createElement('button');
+    pad.className = 'mic-pad';
+    pad.innerHTML = `${emoji}<small>hold to record</small>`;
+    let buffer = null;
+    let recorder = null;
+    let chunks = [];
+    let holdTimer = null;
+    let didRecord = false;
+
+    async function startRec() {
+      try {
+        const stream = await getMic();
+        audio();
+        chunks = [];
+        recorder = new MediaRecorder(stream);
+        recorder.ondataavailable = ev => chunks.push(ev.data);
+        recorder.onstop = async () => {
+          try {
+            const blob = new Blob(chunks);
+            const arr = await blob.arrayBuffer();
+            buffer = await audio().decodeAudioData(arr);
+            pad.classList.add('ready');
+            pad.innerHTML = `${emoji}<small>tap to play!</small>`;
+          } catch { /* too-short recording — just keep the old sound */ }
+          pad.classList.remove('recording');
+        };
+        recorder.start();
+        didRecord = true;
+        pad.classList.add('recording');
+        pad.innerHTML = `${emoji}<small>🎙️ listening…</small>`;
+        holdTimer = setTimeout(stopRec, 4000); // safety cap: 4 seconds
+      } catch {
+        pad.innerHTML = `${emoji}<small>mic blocked 😢</small>`;
+      }
+    }
+
+    function stopRec() {
+      clearTimeout(holdTimer);
+      if (recorder && recorder.state === 'recording') recorder.stop();
+    }
+
+    let pressTimer = null;
+    pad.addEventListener('pointerdown', () => {
+      didRecord = false;
+      // Short tap = play; holding 0.35s starts recording
+      pressTimer = setTimeout(startRec, 350);
+    });
+    pad.addEventListener('pointerup', () => {
+      clearTimeout(pressTimer);
+      if (didRecord) { stopRec(); return; }
+      if (buffer) {
+        audio();
+        const src = ctx.createBufferSource();
+        src.buffer = buffer;
+        const g = ctx.createGain();
+        g.gain.value = 1;
+        src.connect(g);
+        g.connect(master);
+        src.start();
+        flash(pad);
+        sparkleAt(pad);
+      }
+    });
+    pad.addEventListener('pointerleave', () => { clearTimeout(pressTimer); if (didRecord) stopRec(); });
+    micBox.appendChild(pad);
+  });
+
+  /* ================= Song recorder ================= */
+  const recBtn = document.getElementById('recBtn');
+  const songsBox = document.getElementById('songs');
+  let songRecorder = null;
+  let songChunks = [];
+  let songCount = 0;
+
+  recBtn.addEventListener('click', () => {
+    audio();
+    if (!songRecorder || songRecorder.state !== 'recording') {
+      songChunks = [];
+      songRecorder = new MediaRecorder(recDest.stream);
+      songRecorder.ondataavailable = ev => songChunks.push(ev.data);
+      songRecorder.onstop = () => {
+        const blob = new Blob(songChunks, { type: songRecorder.mimeType });
+        const url = URL.createObjectURL(blob);
+        songCount++;
+        const row = document.createElement('div');
+        row.className = 'song';
+        const title = document.createElement('span');
+        title.textContent = `💿 My Song #${songCount}`;
+        const player = document.createElement('audio');
+        player.controls = true;
+        player.src = url;
+        const dl = document.createElement('a');
+        dl.href = url;
+        dl.download = `my-song-${songCount}.webm`;
+        dl.textContent = '⬇️ Save';
+        row.append(title, player, dl);
+        songsBox.prepend(row);
+      };
+      songRecorder.start();
+      recBtn.textContent = '⏹️ Stop & Save';
+      recBtn.classList.add('recording');
+    } else {
+      songRecorder.stop();
+      recBtn.textContent = '🔴 Start Recording';
+      recBtn.classList.remove('recording');
+    }
+  });
+
+  /* unlock audio on the very first touch anywhere (mobile browsers) */
+  document.addEventListener('pointerdown', () => audio(), { once: true });
+})();
+</script>
+</body>
+</html>
