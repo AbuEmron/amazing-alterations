@@ -19,12 +19,12 @@ object ChordBrain {
     class Chord(val name: String, val display: String, val tones: IntArray)
 
     val chords = listOf(
-        Chord("C", "🌞 C major", intArrayOf(0, 2, 4)),
-        Chord("Dm", "🌙 D minor", intArrayOf(1, 3, 5)),
-        Chord("Em", "🌙 E minor", intArrayOf(2, 4, 6)),
-        Chord("F", "🌞 F major", intArrayOf(3, 5, 0)),
-        Chord("G", "🌞 G major", intArrayOf(4, 6, 1)),
-        Chord("Am", "🌙 A minor", intArrayOf(5, 0, 2)),
+        Chord("C", "C major", intArrayOf(0, 2, 4)),
+        Chord("Dm", "D minor", intArrayOf(1, 3, 5)),
+        Chord("Em", "E minor", intArrayOf(2, 4, 6)),
+        Chord("F", "F major", intArrayOf(3, 5, 0)),
+        Chord("G", "G major", intArrayOf(4, 6, 1)),
+        Chord("Am", "A minor", intArrayOf(5, 0, 2)),
     )
 
     /** How naturally chord `j` follows chord `i` (rows = from, cols = to). */

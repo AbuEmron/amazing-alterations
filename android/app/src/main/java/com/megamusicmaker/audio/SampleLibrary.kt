@@ -55,13 +55,13 @@ class SampleLibrary(private val assets: AssetManager) {
         val glock = notes("glock")
         val marimba = notes("marimba")
         melodic = listOf(
-            MelodicBank("piano", "🎹 Piano", piano, chordOctave(piano[0])),
-            MelodicBank("glock", "✨ Bells", glock, chordOctave(glock[0])),
-            MelodicBank("marimba", "🪵 Marimba", marimba, chordOctave(marimba[0])),
+            MelodicBank("piano", "Piano", piano, chordOctave(piano[0])),
+            MelodicBank("glock", "Bells", glock, chordOctave(glock[0])),
+            MelodicBank("marimba", "Marimba", marimba, chordOctave(marimba[0])),
         )
         kits = listOf(
             DrumKit(
-                "tr808", "🎛 808",
+                "tr808", "808",
                 arrayOf(
                     wav("samples/tr808/kick.wav"),
                     wav("samples/tr808/snare.wav"),
@@ -70,11 +70,11 @@ class SampleLibrary(private val assets: AssetManager) {
                     wav("samples/tr808/tom.wav"),
                     wav("samples/tr808/cowbell.wav"),
                 ),
-                wav("samples/tr808/hatopen.wav"), "🛸", "Tsss",
-                wav("samples/tr808/cymbal.wav"), "💥", "Crash",
+                wav("samples/tr808/hatopen.wav"), "🎩", "Open Hat",
+                wav("samples/tr808/cymbal.wav"), "💥", "Cymbal",
             ),
             DrumKit(
-                "orch", "🎻 Orchestra",
+                "orch", "Orchestra",
                 arrayOf(
                     wav("samples/orch/timplow.wav"),
                     wav("samples/orch/snare.wav"),
@@ -83,8 +83,8 @@ class SampleLibrary(private val assets: AssetManager) {
                     wav("samples/orch/timphigh.wav"),
                     wav("samples/orch/glockc6.wav"),
                 ),
-                wav("samples/orch/roll.wav"), "🌩", "Rumble",
-                glock[7], "✨", "Ting",
+                wav("samples/orch/roll.wav"), "🌩", "Roll",
+                glock[7], "✨", "Glock",
             ),
         )
     }

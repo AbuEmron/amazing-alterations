@@ -1,6 +1,6 @@
-# 🎵 Mega Music Maker — Native Android App (Kotlin)
+# Pocket Studio — Native Android App (Kotlin)
 
-A full music production studio, simple enough for a 5-year-old, running **100% offline and 100% privately** on your own device.
+A full music production studio with a one-screen interface, running **100% offline and 100% privately** on your own device.
 
 ## 🔒 Privacy by construction
 
@@ -8,14 +8,14 @@ A full music production studio, simple enough for a 5-year-old, running **100% o
 - Every drum, zap, and piano note is **synthesized from pure math** at startup (`Synth.kt`) — no sample downloads, no accounts, no analytics, no ads.
 - Your voice recordings live only in app memory; songs you save are standard WAV files in your own Music folder.
 
-## 🚀 What makes it more advanced than typical kid music apps
+## 🚀 What makes it stand out
 
 - **Sample-accurate audio engine** (`AudioEngine.kt`): a dedicated real-time thread renders into a low-latency `AudioTrack`, and sequencer hits are scheduled at exact frame offsets inside each buffer — tighter timing than timer-triggered apps.
-- **Your voice as an instrument**: mic recordings become sampler pads *and* two dedicated sequencer tracks (🦖 🐱), so kids can put their own roars into the beat.
-- **Swing/groove control**: the 🤖↔😎 slider shifts off-beats for real humanized rhythm.
+- **Your voice as an instrument**: mic recordings become sampler pads *and* two dedicated sequencer tracks (S1/S2).
+- **Swing control** shifts off-beats for real humanized rhythm; **Smart Chords** auto-harmonizes the keys.
 - **What-you-hear-is-what-you-get recording**: the song recorder taps the master mix bus and writes standard 16-bit WAV files.
-- **Magic Beat** generator: one tap always produces a musical groove.
-- **Pentatonic rainbow piano**: no wrong notes are possible.
+- **Auto-Beat** generator: one tap always produces a musical groove.
+- **Pentatonic keys**: every melody stays in key.
 
 ## 🛠 Building
 

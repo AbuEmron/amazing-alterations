@@ -72,23 +72,23 @@ private val CardBg = Color.White.copy(alpha = 0.08f)
 private data class PadDef(val emoji: String, val label: String, val color: Color, val sample: FloatArray)
 
 private val basePads = listOf(
-    PadDef("🥁", "Boom", Color(0xFFE74C3C), Synth.kick),
-    PadDef("🪘", "Bap", Color(0xFFE67E22), Synth.snare),
-    PadDef("🎩", "Tss", Color(0xFFF1C40F), Synth.hat),
+    PadDef("🥁", "Kick", Color(0xFFE74C3C), Synth.kick),
+    PadDef("🪘", "Snare", Color(0xFFE67E22), Synth.snare),
+    PadDef("🎩", "Hi-Hat", Color(0xFFF1C40F), Synth.hat),
     PadDef("👏", "Clap", Color(0xFF2ECC71), Synth.clap),
-    PadDef("🍅", "Dum", Color(0xFF1ABC9C), Synth.tom),
-    PadDef("🔔", "Ding", Color(0xFF3498DB), Synth.bell),
+    PadDef("🛢", "Tom", Color(0xFF1ABC9C), Synth.tom),
+    PadDef("🔔", "Bell", Color(0xFF3498DB), Synth.bell),
     PadDef("⚡", "Zap", Color(0xFF9B59B6), Synth.zap),
-    PadDef("🐸", "Boing", Color(0xFFE84393), Synth.boing),
+    PadDef("〰", "Boing", Color(0xFFE84393), Synth.boing),
     PadDef("🫧", "Pop", Color(0xFFFD79A8), Synth.pop),
-    PadDef("🐦", "Tweet", Color(0xFF00B894), Synth.whistle),
-    PadDef("🌾", "Shake", Color(0xFFFDCB6E), Synth.shaker),
+    PadDef("📯", "Whistle", Color(0xFF00B894), Synth.whistle),
+    PadDef("🎚", "Shaker", Color(0xFFFDCB6E), Synth.shaker),
     PadDef("🤖", "Robot", Color(0xFF636E72), Synth.robot),
 )
 
-private val trackEmojis = listOf(
+private val trackLabels = listOf(
     "🥁", "🪘", "🎩", "👏",
-    "🍅", "🔔", "🦖", "🐱",
+    "🛢", "🔔", "S1", "S2",
 )
 
 private val trackColors = listOf(
@@ -101,12 +101,12 @@ private val keyColors = listOf(
     Color(0xFF34C8C8), Color(0xFF4C8DFF), Color(0xFF9B59FF), Color(0xFFFF6BD6),
 )
 
-private val keyEmojis = listOf(
-    "🎈", "🍓", "🌞", "🍀",
-    "🐬", "🫐", "🍇", "🌸",
+private val keyLabels = listOf(
+    "C", "D", "E", "G",
+    "A", "C", "D", "E",
 )
 
-private val micEmojis = listOf("🦖", "🐱", "🚀", "🎉")
+private val micLabels = listOf("S1", "S2", "S3", "S4")
 
 /** Scale degree (0..6 = C..B) of each rainbow key - pentatonic C D E G A C D E. */
 private val keyDegrees = intArrayOf(0, 1, 2, 4, 5, 0, 1, 2)
@@ -161,7 +161,7 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(
-            "🎵 Mega Music Maker 🎵",
+            "Pocket Studio",
             fontSize = 26.sp,
             fontWeight = FontWeight.Bold,
             color = Color(0xFFFFD93D),
@@ -169,14 +169,14 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
             modifier = Modifier.fillMaxWidth(),
         )
         Text(
-            "Tap anything. Make music. You can't get it wrong! 🌟",
-            fontSize = 14.sp,
-            color = Color.White.copy(alpha = 0.85f),
+            "Tap · Loop · Record — fully offline",
+            fontSize = 13.sp,
+            color = Color.White.copy(alpha = 0.75f),
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth(),
         )
 
-        Section("🥁 Tap the Sound Pads!") {
+        Section("Pads") {
             if (libLoaded && library.kits.isNotEmpty()) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
@@ -184,7 +184,7 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
                         .fillMaxWidth()
                         .padding(bottom = 10.dp),
                 ) {
-                    Chip("🤖 Synth", kitId == "synth") {
+                    Chip("Synth", kitId == "synth") {
                         kitId = "synth"
                         engine.kitTracks = null
                     }
@@ -211,7 +211,7 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
             }
         }
 
-        Section("🤖 Beat Machine — paint your beat!") {
+        Section("Step Sequencer") {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
                 modifier = Modifier.fillMaxWidth(),
@@ -220,29 +220,29 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
                     if (isPlaying) "⏸ Stop" else "▶ Play",
                     if (isPlaying) Color(0xFFF06D1A) else Color(0xFF14A04A),
                 ) { isPlaying = engine.togglePlay() }
-                BigButton("✨ Magic", Color(0xFF7A2FF0)) {
+                BigButton("Auto-Beat", Color(0xFF7A2FF0)) {
                     magicBeat(engine, micVersion)
                     patternVersion++
                     if (!isPlaying) isPlaying = engine.togglePlay()
                 }
-                BigButton("🧹 Clear", Color(0xFF3C4A66)) {
+                BigButton("Clear", Color(0xFF3C4A66)) {
                     for (t in 0 until AudioEngine.TRACKS) engine.pattern[t].fill(false)
                     patternVersion++
                 }
             }
             Spacer(Modifier.height(10.dp))
-            LabeledSlider("🐢", "🐇", bpm, 60f..180f) {
+            LabeledSlider("BPM", "${bpm.toInt()}", bpm, 60f..180f) {
                 bpm = it
                 engine.bpm = it.toInt()
             }
-            LabeledSlider("🤖", "😎", swing, 0f..0.3f) {
+            LabeledSlider("Swing", "${(swing * 100).toInt()}%", swing, 0f..0.3f) {
                 swing = it
                 engine.swing = it
             }
             Spacer(Modifier.height(6.dp))
             SequencerGrid(engine, currentStep, patternVersion, micVersion) { patternVersion++ }
             Text(
-                "🦖 and 🐱 rows play YOUR recorded sounds!",
+                "S1 & S2 rows play your recorded samples. Tap a row label to preview it.",
                 fontSize = 12.sp,
                 color = Color.White.copy(alpha = 0.7f),
                 textAlign = TextAlign.Center,
@@ -252,7 +252,7 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
             )
         }
 
-        Section("🌈 Rainbow Piano — every note sounds great!") {
+        Section("Keys") {
             if (libLoaded && library.melodic.isNotEmpty()) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
@@ -260,7 +260,7 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
                         .fillMaxWidth()
                         .padding(bottom = 10.dp),
                 ) {
-                    Chip("🤖 Synth", melodicId == "synth") { melodicId = "synth" }
+                    Chip("Synth", melodicId == "synth") { melodicId = "synth" }
                     for (bank in library.melodic) {
                         Chip(bank.label, melodicId == bank.id) { melodicId = bank.id }
                     }
@@ -274,7 +274,7 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
                     .padding(bottom = 10.dp),
             ) {
                 Chip(
-                    if (magicChords) "✨ Magic Chords ON" else "✨ Magic Chords",
+                    if (magicChords) "Smart Chords ON" else "Smart Chords",
                     magicChords,
                 ) {
                     magicChords = !magicChords
@@ -297,7 +297,7 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
             ) {
                 for (i in 0 until 8) {
                     Box(Modifier.weight(1f)) {
-                        PianoKey(keyEmojis[i], keyColors[i], (150 - i * 9).dp) {
+                        PianoKey(keyLabels[i], keyColors[i], (150 - i * 9).dp) {
                             engine.play(melodicNotes?.get(i) ?: Synth.piano[i], 0.9f)
                             if (magicChords) {
                                 val chord = ChordBrain.pick(keyDegrees[i])
@@ -315,7 +315,7 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
             }
             if (magicChords) {
                 Text(
-                    "Every note you play gets the perfect chord underneath — automatically! 🧙",
+                    "Each note is auto-harmonized with the best-fitting chord.",
                     fontSize = 12.sp,
                     color = Color.White.copy(alpha = 0.7f),
                     textAlign = TextAlign.Center,
@@ -326,16 +326,16 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
             }
         }
 
-        Section("🎤 My Sounds — record YOUR voice!") {
+        Section("Sampler") {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 for (i in 0 until AudioEngine.MIC_SLOTS) {
                     Box(Modifier.weight(1f)) {
-                        MicPad(engine, i, micEmojis[i], micVersion) { micVersion++ }
+                        MicPad(engine, i, micLabels[i], micVersion) { micVersion++ }
                     }
                 }
             }
             Text(
-                "Hold a pad and make a silly sound 🗣 — let go, then tap it to play!",
+                "Hold a pad to record from the mic, release to stop, tap to play. S1 & S2 feed the sequencer.",
                 fontSize = 12.sp,
                 color = Color.White.copy(alpha = 0.75f),
                 textAlign = TextAlign.Center,
@@ -345,13 +345,13 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
             )
         }
 
-        Section("💿 Record Your Song!") {
+        Section("Record") {
             Row(
                 horizontalArrangement = Arrangement.Center,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 BigButton(
-                    if (isRecording) "⏹ Stop & Save" else "🔴 Start Recording",
+                    if (isRecording) "⏹ Stop & Save" else "● Record",
                     if (isRecording) Color(0xFFAA0000) else Color(0xFFD1114A),
                 ) {
                     if (!isRecording) {
@@ -360,7 +360,7 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
                     } else {
                         isRecording = false
                         val data = engine.stopRecording()
-                        val name = "My Song #${songs.size + 1}"
+                        val name = "Take ${songs.size + 1}"
                         scope.launch(Dispatchers.IO) {
                             val uri = WavWriter.save(
                                 context, "my-song-${System.currentTimeMillis()}.wav", data
@@ -382,7 +382,7 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
                         .background(Color.Black.copy(alpha = 0.25f))
                         .padding(10.dp),
                 ) {
-                    Text("💿 $name", fontSize = 15.sp, color = Color.White, modifier = Modifier.weight(1f))
+                    Text(name, fontSize = 15.sp, color = Color.White, modifier = Modifier.weight(1f))
                     BigButton("▶ Play", Color(0xFF1A7FD4)) {
                         try {
                             MediaPlayer.create(context, uri)?.apply {
@@ -396,7 +396,7 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
             }
             if (songs.isNotEmpty()) {
                 Text(
-                    "Saved in your Music folder 📁 — they never leave your device.",
+                    "Saved as WAV in Music/MegaMusicMaker — nothing leaves your device.",
                     fontSize = 11.sp,
                     color = Color.White.copy(alpha = 0.6f),
                     textAlign = TextAlign.Center,
@@ -408,7 +408,7 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
         }
 
         Text(
-            "🔒 100% offline · no internet permission · your sounds stay yours",
+            "100% offline · no internet permission · your audio stays yours",
             fontSize = 12.sp,
             color = Color.White.copy(alpha = 0.55f),
             textAlign = TextAlign.Center,
@@ -517,16 +517,22 @@ private fun BigButton(text: String, color: Color, onClick: () -> Unit) {
 
 @Composable
 private fun LabeledSlider(
-    left: String,
-    right: String,
-    value: Float,
+    label: String,
+    value: String,
+    sliderValue: Float,
     range: ClosedFloatingPointRange<Float>,
     onChange: (Float) -> Unit,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-        Text(left, fontSize = 22.sp)
+        Text(
+            label,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.White.copy(alpha = 0.8f),
+            modifier = Modifier.width(52.dp),
+        )
         Slider(
-            value = value,
+            value = sliderValue,
             onValueChange = onChange,
             valueRange = range,
             colors = SliderDefaults.colors(
@@ -538,7 +544,14 @@ private fun LabeledSlider(
                 .weight(1f)
                 .padding(horizontal = 8.dp),
         )
-        Text(right, fontSize = 22.sp)
+        Text(
+            value,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFFFFD93D),
+            textAlign = TextAlign.End,
+            modifier = Modifier.width(44.dp),
+        )
     }
 }
 
@@ -558,8 +571,10 @@ private fun SequencerGrid(
             val hasSample = engine.trackSample(t) != null
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    trackEmojis[t],
-                    fontSize = 18.sp,
+                    trackLabels[t],
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White.copy(alpha = 0.85f),
                     textAlign = TextAlign.Center,
                     modifier = Modifier
                         .width(34.dp)
@@ -622,7 +637,7 @@ private fun PianoKey(emoji: String, color: Color, height: androidx.compose.ui.un
             }
             .padding(bottom = 8.dp),
     ) {
-        Text(emoji, fontSize = 20.sp)
+        Text(emoji, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
     }
 }
 
@@ -696,11 +711,11 @@ private fun MicPad(
             },
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(emoji, fontSize = 28.sp)
+            Text(emoji, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
             Text(
                 when {
-                    recordingNow -> "🎙 listening…"
-                    hasSample -> "tap to play!"
+                    recordingNow -> "recording…"
+                    hasSample -> "tap to play"
                     else -> "hold to record"
                 },
                 fontSize = 10.sp,

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>🎵 Mega Music Maker 🎵</title>
+<title>Pocket Studio</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
 
@@ -14,7 +14,7 @@
   }
 
   body {
-    font-family: 'Comic Sans MS', 'Chalkboard SE', 'Segoe UI', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     background: linear-gradient(160deg, var(--bg1), var(--bg2) 60%, #0f2557);
     min-height: 100vh;
     color: #fff;
@@ -243,26 +243,28 @@
 <body>
 <div class="wrap">
   <header>
-    <h1>🎵 Mega Music Maker 🎵</h1>
-    <p>Tap anything. Make music. You can't get it wrong! 🌟</p>
+    <h1>Pocket Studio</h1>
+    <p>Tap · Loop · Record — fully offline</p>
   </header>
 
   <!-- SOUND PADS -->
   <section>
-    <h2>🥁 Tap the Sound Pads!</h2>
+    <h2>Pads</h2>
     <div class="chips" id="kitChips"></div>
     <div class="pads" id="pads"></div>
   </section>
 
   <!-- BEAT MACHINE -->
   <section>
-    <h2>🤖 Beat Machine — paint your beat!</h2>
+    <h2>Step Sequencer</h2>
     <div class="seq-controls">
       <button class="big-btn" id="playBtn">▶️ Play</button>
-      <button class="big-btn" id="magicBtn">✨ Magic Beat</button>
-      <button class="big-btn" id="clearBtn">🧹 Clear</button>
+      <button class="big-btn" id="magicBtn">Auto-Beat</button>
+      <button class="big-btn" id="clearBtn">Clear</button>
       <div class="tempo-box">
-        🐢 <input type="range" id="tempo" min="60" max="180" value="110"> 🐇
+        <span style="font-size:0.85rem;font-weight:bold;opacity:0.8;">BPM</span>
+        <input type="range" id="tempo" min="60" max="180" value="110">
+        <span id="bpmVal" style="font-size:1rem;font-weight:bold;color:#ffd93d;min-width:2.2em;text-align:right;">110</span>
       </div>
     </div>
     <div class="seq-grid" id="seqGrid"></div>
@@ -270,7 +272,7 @@
 
   <!-- RAINBOW KEYS -->
   <section>
-    <h2>🌈 Rainbow Piano — every note sounds great!</h2>
+    <h2>Keys</h2>
     <div class="chips" id="keyChips"></div>
     <div class="keys" id="keys"></div>
     <p id="chordLabel" style="text-align:center; margin-top:10px; font-weight:bold; color:#ffd93d; min-height:1.2em;"></p>
@@ -278,21 +280,21 @@
 
   <!-- MIC SAMPLER -->
   <section>
-    <h2>🎤 My Sounds — record YOUR voice!</h2>
+    <h2>Sampler</h2>
     <div class="mic-pads" id="micPads"></div>
-    <p class="mic-hint">Hold a pad and make a silly sound 🗣️ — let go, then tap it to play!</p>
+    <p class="mic-hint">Hold a pad to record from the mic, release to stop, tap to play.</p>
   </section>
 
   <!-- SONG RECORDER -->
   <section>
-    <h2>💿 Record Your Song!</h2>
+    <h2>Record</h2>
     <div class="rec-controls">
-      <button class="big-btn" id="recBtn">🔴 Start Recording</button>
+      <button class="big-btn" id="recBtn">● Record</button>
     </div>
     <div id="songs"></div>
   </section>
 
-  <footer>Made with ❤️ — everything runs right in your browser, nothing to install!</footer>
+  <footer>100% offline · runs entirely in your browser · your audio stays yours</footer>
 </div>
 
 <script src="sounds.js"></script>
@@ -448,17 +450,17 @@
 
   /* ================= Sound pads ================= */
   const PADS = [
-    { name: 'kick',    emoji: '🥁', label: 'Boom',    color: '#e74c3c', key: '1' },
-    { name: 'snare',   emoji: '🪘', label: 'Bap',     color: '#e67e22', key: '2' },
-    { name: 'hat',     emoji: '🎩', label: 'Tss',     color: '#f1c40f', key: '3' },
+    { name: 'kick',    emoji: '🥁', label: 'Kick',    color: '#e74c3c', key: '1' },
+    { name: 'snare',   emoji: '🪘', label: 'Snare',     color: '#e67e22', key: '2' },
+    { name: 'hat',     emoji: '🎩', label: 'Hi-Hat',     color: '#f1c40f', key: '3' },
     { name: 'clap',    emoji: '👏', label: 'Clap',    color: '#2ecc71', key: '4' },
-    { name: 'tom',     emoji: '🍅', label: 'Dum',     color: '#1abc9c', key: '5' },
-    { name: 'bell',    emoji: '🔔', label: 'Ding',    color: '#3498db', key: '6' },
+    { name: 'tom',     emoji: '🛢', label: 'Tom',     color: '#1abc9c', key: '5' },
+    { name: 'bell',    emoji: '🔔', label: 'Bell',    color: '#3498db', key: '6' },
     { name: 'zap',     emoji: '⚡', label: 'Zap',     color: '#9b59b6', key: '7' },
-    { name: 'boing',   emoji: '🐸', label: 'Boing',   color: '#e84393', key: '8' },
+    { name: 'boing',   emoji: '〰', label: 'Boing',   color: '#e84393', key: '8' },
     { name: 'pop',     emoji: '🫧', label: 'Pop',     color: '#fd79a8', key: 'q' },
-    { name: 'whistle', emoji: '🐦', label: 'Tweet',   color: '#00b894', key: 'w' },
-    { name: 'shaker',  emoji: '🌾', label: 'Shake',   color: '#fdcb6e', key: 'e' },
+    { name: 'whistle', emoji: '📯', label: 'Whistle',   color: '#00b894', key: 'w' },
+    { name: 'shaker',  emoji: '🎚', label: 'Shaker',   color: '#fdcb6e', key: 'e' },
     { name: 'robot',   emoji: '🤖', label: 'Robot',   color: '#636e72', key: 'r' },
   ];
 
@@ -486,7 +488,7 @@
     { name: 'snare',  emoji: '🪘', color: '#e67e22' },
     { name: 'hat',    emoji: '🎩', color: '#f1c40f' },
     { name: 'clap',   emoji: '👏', color: '#2ecc71' },
-    { name: 'tom',    emoji: '🍅', color: '#1abc9c' },
+    { name: 'tom',    emoji: '🛢', color: '#1abc9c' },
     { name: 'bell',   emoji: '🔔', color: '#3498db' },
   ];
   const grid = ROWS.map(() => new Array(STEPS).fill(false));
@@ -527,6 +529,9 @@
   let nextTime = 0;
   let timer = null;
   const tempoSlider = document.getElementById('tempo');
+  tempoSlider.addEventListener('input', () => {
+    document.getElementById('bpmVal').textContent = tempoSlider.value;
+  });
 
   function stepDur() { return 60 / Number(tempoSlider.value) / 4; }
 
@@ -610,12 +615,12 @@
   /* ---- Magic Chords: auto-corrects harmony for every note you play ---- */
   let magicChords = false;
   const CHORDS = [
-    { name: '🌞 C major', tones: [0, 2, 4] },
-    { name: '🌙 D minor', tones: [1, 3, 5] },
-    { name: '🌙 E minor', tones: [2, 4, 6] },
-    { name: '🌞 F major', tones: [3, 5, 0] },
-    { name: '🌞 G major', tones: [4, 6, 1] },
-    { name: '🌙 A minor', tones: [5, 0, 2] },
+    { name: 'C major', tones: [0, 2, 4] },
+    { name: 'D minor', tones: [1, 3, 5] },
+    { name: 'E minor', tones: [2, 4, 6] },
+    { name: 'F major', tones: [3, 5, 0] },
+    { name: 'G major', tones: [4, 6, 1] },
+    { name: 'A minor', tones: [5, 0, 2] },
   ];
   // how naturally chord j follows chord i
   const CHORD_FLOW = [
@@ -671,7 +676,7 @@
       const chord = pickChord(KEY_DEGREES[idx]);
       chord.tones.forEach((deg, k) => playChordTone(deg, t + k * 0.03, 0.45));
       const label = document.getElementById('chordLabel');
-      if (label) label.textContent = chord.name + '!';
+      if (label) label.textContent = chord.name;
     }
   }
 
@@ -683,7 +688,7 @@
     k.style.background = `linear-gradient(180deg, ${n.color}, ${n.color}bb)`;
     k.style.height = (100 - i * 6) + '%';
     k.style.alignSelf = 'flex-end';
-    k.textContent = ['🎈','🍓','🌞','🍀','🐬','🫐','🍇','🌸'][i];
+    k.textContent = ['C','D','E','G','A','C','D','E'][i]; k.style.fontWeight = 'bold';
     k.addEventListener('pointerdown', () => { playNote(n.f, i); flash(k); sparkleAt(k); });
     keysBox.appendChild(k);
     keyEls[n.key] = { el: k, f: n.f, idx: i };
@@ -699,7 +704,7 @@
   });
 
   /* ================= Mic sampler ================= */
-  const MIC_EMOJI = ['🦖', '🐱', '🚀', '🎉'];
+  const MIC_EMOJI = ['S1', 'S2', 'S3', 'S4'];
   let micStream = null;
 
   async function getMic() {
@@ -733,17 +738,17 @@
             const arr = await blob.arrayBuffer();
             buffer = await audio().decodeAudioData(arr);
             pad.classList.add('ready');
-            pad.innerHTML = `${emoji}<small>tap to play!</small>`;
+            pad.innerHTML = `${emoji}<small>tap to play</small>`;
           } catch { /* too-short recording — just keep the old sound */ }
           pad.classList.remove('recording');
         };
         recorder.start();
         didRecord = true;
         pad.classList.add('recording');
-        pad.innerHTML = `${emoji}<small>🎙️ listening…</small>`;
+        pad.innerHTML = `${emoji}<small>recording…</small>`;
         holdTimer = setTimeout(stopRec, 4000); // safety cap: 4 seconds
       } catch {
-        pad.innerHTML = `${emoji}<small>mic blocked 😢</small>`;
+        pad.innerHTML = `${emoji}<small>mic blocked</small>`;
       }
     }
 
@@ -798,14 +803,14 @@
         const row = document.createElement('div');
         row.className = 'song';
         const title = document.createElement('span');
-        title.textContent = `💿 My Song #${songCount}`;
+        title.textContent = `Take ${songCount}`;
         const player = document.createElement('audio');
         player.controls = true;
         player.src = url;
         const dl = document.createElement('a');
         dl.href = url;
-        dl.download = `my-song-${songCount}.webm`;
-        dl.textContent = '⬇️ Save';
+        dl.download = `take-${songCount}.webm`;
+        dl.textContent = 'Save';
         row.append(title, player, dl);
         songsBox.prepend(row);
       };
@@ -839,17 +844,17 @@
     const setKit = k => {
       currentKit = k;
       if (k === 'tr808') {
-        padBtns[6].innerHTML = '🛸<small>Tsss</small>';
-        padBtns[7].innerHTML = '💥<small>Crash</small>';
+        padBtns[6].innerHTML = '🎩<small>Open Hat</small>';
+        padBtns[7].innerHTML = '💥<small>Cymbal</small>';
       } else {
         padBtns[6].innerHTML = '⚡<small>Zap</small>';
-        padBtns[7].innerHTML = '🐸<small>Boing</small>';
+        padBtns[7].innerHTML = '〰<small>Boing</small>';
       }
     };
-    mkChip(kitChips, '🤖 Synth', true, b => { setKit('synth'); select(kitChips, b); });
-    mkChip(kitChips, '🎛 Real 808', false, b => { setKit('tr808'); select(kitChips, b); });
-    mkChip(keyChips, '🤖 Synth', false, b => { currentKeys = 'synth'; select(keyChips, b); });
-    mkChip(keyChips, '🎹 Grand Piano', true, b => { currentKeys = 'piano'; select(keyChips, b); });
+    mkChip(kitChips, 'Synth', true, b => { setKit('synth'); select(kitChips, b); });
+    mkChip(kitChips, '808', false, b => { setKit('tr808'); select(kitChips, b); });
+    mkChip(keyChips, 'Synth', false, b => { currentKeys = 'synth'; select(keyChips, b); });
+    mkChip(keyChips, 'Grand Piano', true, b => { currentKeys = 'piano'; select(keyChips, b); });
     currentKeys = 'piano';
   }
 
@@ -858,15 +863,15 @@
     const keyChips = document.getElementById('keyChips');
     const b = document.createElement('button');
     b.className = 'chip';
-    b.textContent = '✨ Magic Chords';
+    b.textContent = 'Smart Chords';
     b.addEventListener('pointerdown', () => {
       audio();
       magicChords = !magicChords;
       lastChord = 0;
       b.classList.toggle('sel', magicChords);
-      b.textContent = magicChords ? '✨ Magic Chords ON' : '✨ Magic Chords';
+      b.textContent = magicChords ? 'Smart Chords ON' : 'Smart Chords';
       const label = document.getElementById('chordLabel');
-      if (label) label.textContent = magicChords ? 'Play a key — I\'ll pick the perfect chord! 🧙' : '';
+      if (label) label.textContent = magicChords ? 'Play a key — the best-fitting chord is added automatically.' : '';
     });
     keyChips.appendChild(b);
   }

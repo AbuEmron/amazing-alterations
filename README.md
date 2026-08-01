@@ -1,6 +1,6 @@
-# 🎵 Mega Music Maker 🎵
+# Pocket Studio
 
-A full music production studio so simple a 5-year-old can use it — and powerful enough to actually make songs. **100% offline. 100% private. Yours.**
+A full music production studio that anyone can pick up in seconds — and powerful enough to actually make songs. **100% offline. 100% private. Yours.**
 
 Two versions live in this repo:
 
@@ -13,22 +13,22 @@ Two versions live in this repo:
 
 | Studio section | What it does |
 |---|---|
-| 🥁 **Sound Pads** | 12 big colorful pads — drums, zaps, boings, robots. Every sound synthesized from pure math, nothing downloaded. |
-| 🤖 **Beat Machine** | A 16-step multi-track drum sequencer. Paint squares to build a beat, drag the 🐢→🐇 slider for speed, or press **✨ Magic Beat** for an instant groove that always sounds good. |
-| 🌈 **Rainbow Piano** | 8 pentatonic keys — pentatonic means there are **no wrong notes**, everything sounds nice together. |
-| 🎤 **My Sounds** | A real mic sampler: hold a pad, make a silly sound, let go — then tap to play it back. |
-| 💿 **Song Recorder** | One red button records everything you play into a real audio file you can keep. |
+| **Pads** | 12 performance pads — kick, snare, hats, FX. Switch between the synth kit, a real TR-808, and orchestral percussion. |
+| **Step Sequencer** | 16 steps × 8 tracks with BPM and swing controls. Paint a beat or press **Auto-Beat** for an instant groove. |
+| **Keys** | Pentatonic keyboard playable as a real grand piano, glockenspiel, marimba, or synth — with **Smart Chords** auto-harmonization. |
+| **Sampler** | Hold-to-record mic sampler; two sample slots feed the sequencer as extra tracks. |
+| **Record** | One-button master-bus recording to WAV. |
 
 ## The Android app goes further
 
 - **Sample-accurate real-time audio engine** — sequencer hits are scheduled at exact frame offsets, tighter than any timer-based toy app
-- **Your voice in the beat** — mic recordings become sequencer tracks (🦖 🐱)
-- **Swing/groove slider** (🤖↔😎) for humanized rhythm
+- **Your voice in the beat** — mic recordings become sequencer tracks (S1/S2)
+- **Swing control** for humanized rhythm
 - **WAV export** straight into your Music folder
 - **Zero internet permission** — the OS itself guarantees nothing ever leaves your device
 
-## Why it's kid-proof
+## Why it's easy
 
-- Giant touch-friendly buttons with emoji — no reading required
-- Pentatonic scale + Magic Beat = impossible to sound bad
+- Everything on one scrollable screen — no menus, no modes to get lost in
+- Pentatonic keys + Smart Chords + Auto-Beat mean every jam sounds musical
 - No accounts, no ads, no in-app purchases, no network — ever
