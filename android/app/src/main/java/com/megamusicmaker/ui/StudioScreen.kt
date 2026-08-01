@@ -379,6 +379,7 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
             Spacer(Modifier.height(8.dp))
             var reverb by remember { mutableStateOf(engine.reverbMix) }
             var delayFx by remember { mutableStateOf(engine.delayMix) }
+            var knock by remember { mutableStateOf(engine.bassEnhance) }
             LabeledSlider("Reverb", "${(reverb * 100).toInt()}%", reverb, 0f..1f) {
                 reverb = it
                 engine.reverbMix = it
@@ -387,8 +388,14 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
                 delayFx = it
                 engine.delayMix = it
             }
+            LabeledSlider("Knock", "${(knock * 100).toInt()}%", knock, 0f..1f) {
+                knock = it
+                engine.bassEnhance = it
+            }
             Text(
                 "Per-track level and mute. Delay is tempo-synced (dotted 8th). " +
+                    "Knock synthesizes audible harmonics of the sub band so 808s " +
+                    "hit even on phone speakers. " +
                     "Everything still runs through the auto-master chain.",
                 fontSize = 12.sp,
                 color = Color.White.copy(alpha = 0.7f),

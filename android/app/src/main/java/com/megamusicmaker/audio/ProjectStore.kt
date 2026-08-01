@@ -44,6 +44,7 @@ object ProjectStore {
             o.put("metronome", engine.metronome)
             o.put("reverb", engine.reverbMix.toDouble())
             o.put("delay", engine.delayMix.toDouble())
+            o.put("knock", engine.bassEnhance.toDouble())
             o.put("kit", kitId)
             o.put("melodic", melodicId)
             val gains = JSONArray()
@@ -82,6 +83,7 @@ object ProjectStore {
                 engine.metronome = o.optBoolean("metronome", false)
                 engine.reverbMix = o.optDouble("reverb", 0.0).toFloat()
                 engine.delayMix = o.optDouble("delay", 0.0).toFloat()
+                engine.bassEnhance = o.optDouble("knock", 0.45).toFloat()
                 kitId = o.optString("kit", "synth")
                 melodicId = o.optString("melodic", "piano")
                 o.optJSONArray("gains")?.let { g ->

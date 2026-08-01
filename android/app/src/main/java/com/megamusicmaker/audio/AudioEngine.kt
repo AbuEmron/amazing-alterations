@@ -64,6 +64,13 @@ class AudioEngine {
     @Volatile var reverbMix = 0f       // 0..1 master reverb send
     @Volatile var delayMix = 0f        // 0..1 master delay send (tempo-synced dotted 8th)
 
+    /**
+     * Knock: psychoacoustic sub-harmonic enhancer. Phone speakers can't play
+     * 50 Hz, so we synthesize the sub band's harmonics up where they CAN be
+     * heard - the brain reconstructs the missing fundamental (MaxxBass-style).
+     */
+    @Volatile var bassEnhance = 0.45f  // 0..1
+
     val micSamples = arrayOfNulls<FloatArray>(MIC_SLOTS)
 
     /** Active drum kit for tracks 0-5; null means the built-in synth kit. */
@@ -235,7 +242,13 @@ class AudioEngine {
 
     private var hpState = 0f
     private var compEnv = 0f
+    private var subLp = 0f
+    private var harmLp = 0f
+    private var harmHp = 0f
     private val hpCoef = (2.0 * Math.PI * 18.0 / SR).toFloat()          // ~18 Hz rumble cut (below 808 territory)
+    private val subLpCoef = (2.0 * Math.PI * 120.0 / SR).toFloat()      // sub-band isolation
+    private val harmLpCoef = (2.0 * Math.PI * 900.0 / SR).toFloat()     // tame fizz above 900 Hz
+    private val harmHpCoef = (2.0 * Math.PI * 90.0 / SR).toFloat()      // keep harmonics out of the mud
     private val attackCoef = Math.exp(-1.0 / (0.010 * SR)).toFloat()    // 10 ms attack - lets transients punch
     private val releaseCoef = Math.exp(-1.0 / (0.25 * SR)).toFloat()    // 250 ms release - no pumping on long 808 decays
 
@@ -244,11 +257,24 @@ class AudioEngine {
         val invRatio = 1f / 2.5f
         val makeup = 1.15f
         val knee = 0.85f
+        val knock = bassEnhance
         for (j in mix.indices) {
             var x = mix[j]
             // one-pole high-pass removes sub-sonic rumble before compression
             hpState += hpCoef * (x - hpState)
             x -= hpState
+            // Knock: rectify + saturate the sub band to synthesize audible
+            // harmonics of the fundamental, band-limited to ~90-700 Hz
+            if (knock > 0.01f) {
+                subLp += subLpCoef * (x - subLp)
+                val rect = if (subLp >= 0) subLp else -subLp        // 2nd harmonic
+                val asym = rect - 0.35f * subLp                     // push energy higher
+                val rect2 = if (asym >= 0) asym else -asym          // 4th harmonic
+                val odd = tanh(subLp * 6f)                          // odd series
+                harmLp += harmLpCoef * ((rect * 1.4f + rect2 * 0.8f + odd * 0.8f) - harmLp)
+                harmHp += harmHpCoef * (harmLp - harmHp)
+                x += (harmLp - harmHp) * knock * 2.4f
+            }
             // gentle program compressor with envelope follower
             val level = if (x >= 0) x else -x
             compEnv = if (level > compEnv) {
