@@ -207,6 +207,23 @@
     box-shadow: 0 4px 0 rgba(0,0,0,0.3);
   }
 
+  /* ---------- Kit chips ---------- */
+  .chips { display: flex; justify-content: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .chips:empty { display: none; }
+  .chip {
+    border: none;
+    border-radius: 12px;
+    padding: 8px 14px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    font-family: inherit;
+    cursor: pointer;
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+    touch-action: manipulation;
+  }
+  .chip.sel { background: #ffd93d; color: #1a0b3d; }
+
   /* ---------- Fun bits ---------- */
   .spark {
     position: fixed;
@@ -233,6 +250,7 @@
   <!-- SOUND PADS -->
   <section>
     <h2>🥁 Tap the Sound Pads!</h2>
+    <div class="chips" id="kitChips"></div>
     <div class="pads" id="pads"></div>
   </section>
 
@@ -253,6 +271,7 @@
   <!-- RAINBOW KEYS -->
   <section>
     <h2>🌈 Rainbow Piano — every note sounds great!</h2>
+    <div class="chips" id="keyChips"></div>
     <div class="keys" id="keys"></div>
   </section>
 
@@ -275,6 +294,7 @@
   <footer>Made with ❤️ — everything runs right in your browser, nothing to install!</footer>
 </div>
 
+<script src="sounds.js"></script>
 <script>
 (() => {
   'use strict';
@@ -298,6 +318,7 @@
       limiter.connect(recDest);
     }
     if (ctx.state === 'suspended') ctx.resume();
+    decodePremium();
     return ctx;
   }
 
@@ -365,9 +386,46 @@
     },
   };
 
+  /* ---- premium sample banks (sounds.js: real TR-808 + Salamander grand piano) ---- */
+  const premium = {};        // decoded AudioBuffers by key
+  let premiumReady = false;
+  let currentKit = 'synth';  // 'synth' | 'tr808'
+  let currentKeys = 'synth'; // 'synth' | 'piano'
+
+  function decodePremium() {
+    if (premiumReady || !window.PREMIUM_SOUNDS) return;
+    premiumReady = true;
+    for (const [key, b64] of Object.entries(window.PREMIUM_SOUNDS)) {
+      const bin = atob(b64);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      ctx.decodeAudioData(bytes.buffer).then(buf => { premium[key] = buf; }).catch(() => {});
+    }
+  }
+
+  function playBuffer(buf, t, gain = 1) {
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const g = ctx.createGain();
+    g.gain.value = gain;
+    src.connect(g);
+    g.connect(master);
+    src.start(t);
+  }
+
+  const KIT_808 = {
+    kick: 'tr808_kick', snare: 'tr808_snare', hat: 'tr808_hat', clap: 'tr808_clap',
+    tom: 'tr808_tom', bell: 'tr808_cowbell', zap: 'tr808_hatopen', boing: 'tr808_cymbal',
+  };
+
   function play(name, t) {
     audio();
-    SOUNDS[name](t !== undefined ? t : ctx.currentTime);
+    const when = t !== undefined ? t : ctx.currentTime;
+    if (currentKit === 'tr808') {
+      const buf = premium[KIT_808[name]];
+      if (buf) { playBuffer(buf, when); return; }
+    }
+    SOUNDS[name](when);
   }
 
   /* ================= Sparkles ================= */
@@ -475,7 +533,7 @@
     while (nextTime < ctx.currentTime + 0.12) {
       const s = step;
       for (let r = 0; r < ROWS.length; r++) {
-        if (grid[r][s]) SOUNDS[ROWS[r].name](nextTime);
+        if (grid[r][s]) play(ROWS[r].name, nextTime);
       }
       const delay = Math.max(0, (nextTime - ctx.currentTime) * 1000);
       setTimeout(() => highlight(s), delay);
@@ -548,9 +606,13 @@
     { f: 1318.5, color: '#ff6bd6', key: 'k' },
   ];
 
-  function playNote(freq) {
+  function playNote(freq, idx) {
     audio();
     const t = ctx.currentTime;
+    if (currentKeys === 'piano' && idx !== undefined) {
+      const buf = premium['piano_n' + idx];
+      if (buf) { playBuffer(buf, t, 0.9); return; }
+    }
     tone(t, 'sine', freq, freq, 0.7, 0.5);
     tone(t, 'sine', freq * 2, freq * 2, 0.4, 0.12);
   }
@@ -564,9 +626,9 @@
     k.style.height = (100 - i * 6) + '%';
     k.style.alignSelf = 'flex-end';
     k.textContent = ['🎈','🍓','🌞','🍀','🐬','🫐','🍇','🌸'][i];
-    k.addEventListener('pointerdown', () => { playNote(n.f); flash(k); sparkleAt(k); });
+    k.addEventListener('pointerdown', () => { playNote(n.f, i); flash(k); sparkleAt(k); });
     keysBox.appendChild(k);
-    keyEls[n.key] = { el: k, f: n.f };
+    keyEls[n.key] = { el: k, f: n.f, idx: i };
   });
 
   /* ================= Keyboard shortcuts (for big kids) ================= */
@@ -574,7 +636,7 @@
     if (e.repeat) return;
     const key = e.key.toLowerCase();
     if (padEls[key]) { play(padEls[key].name); flash(padEls[key].el); sparkleAt(padEls[key].el); }
-    else if (keyEls[key]) { playNote(keyEls[key].f); flash(keyEls[key].el); sparkleAt(keyEls[key].el); }
+    else if (keyEls[key]) { playNote(keyEls[key].f, keyEls[key].idx); flash(keyEls[key].el); sparkleAt(keyEls[key].el); }
     else if (key === ' ') { e.preventDefault(); playBtn.click(); }
   });
 
@@ -698,6 +760,40 @@
       recBtn.classList.remove('recording');
     }
   });
+
+  /* ---- premium kit toggles (only if sounds.js is present) ---- */
+  if (window.PREMIUM_SOUNDS) {
+    const kitChips = document.getElementById('kitChips');
+    const keyChips = document.getElementById('keyChips');
+    const mkChip = (box, label, sel, fn) => {
+      const b = document.createElement('button');
+      b.className = 'chip' + (sel ? ' sel' : '');
+      b.textContent = label;
+      b.addEventListener('pointerdown', () => { audio(); fn(b); });
+      box.appendChild(b);
+      return b;
+    };
+    const select = (box, el) => {
+      box.querySelectorAll('.chip').forEach(c => c.classList.remove('sel'));
+      el.classList.add('sel');
+    };
+    const padBtns = Array.from(padsBox.children);
+    const setKit = k => {
+      currentKit = k;
+      if (k === 'tr808') {
+        padBtns[6].innerHTML = '🛸<small>Tsss</small>';
+        padBtns[7].innerHTML = '💥<small>Crash</small>';
+      } else {
+        padBtns[6].innerHTML = '⚡<small>Zap</small>';
+        padBtns[7].innerHTML = '🐸<small>Boing</small>';
+      }
+    };
+    mkChip(kitChips, '🤖 Synth', true, b => { setKit('synth'); select(kitChips, b); });
+    mkChip(kitChips, '🎛 Real 808', false, b => { setKit('tr808'); select(kitChips, b); });
+    mkChip(keyChips, '🤖 Synth', false, b => { currentKeys = 'synth'; select(keyChips, b); });
+    mkChip(keyChips, '🎹 Grand Piano', true, b => { currentKeys = 'piano'; select(keyChips, b); });
+    currentKeys = 'piano';
+  }
 
   /* unlock audio on the very first touch anywhere (mobile browsers) */
   document.addEventListener('pointerdown', () => audio(), { once: true });

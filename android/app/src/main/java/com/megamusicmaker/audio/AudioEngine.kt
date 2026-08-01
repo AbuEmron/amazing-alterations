@@ -48,6 +48,9 @@ class AudioEngine {
     val pattern = Array(TRACKS) { BooleanArray(STEPS) }
     val micSamples = arrayOfNulls<FloatArray>(MIC_SLOTS)
 
+    /** Active drum kit for tracks 0-5; null means the built-in synth kit. */
+    @Volatile var kitTracks: Array<FloatArray>? = null
+
     /** Current sequencer column for the UI highlight; -1 when stopped. */
     val stepFlow = MutableStateFlow(-1)
 
@@ -57,16 +60,21 @@ class AudioEngine {
     private var nextStepFrame = 0L
     private var step = 0
 
-    fun trackSample(track: Int): FloatArray? = when (track) {
-        0 -> Synth.kick
-        1 -> Synth.snare
-        2 -> Synth.hat
-        3 -> Synth.clap
-        4 -> Synth.tom
-        5 -> Synth.bell
-        6 -> micSamples[0]
-        7 -> micSamples[1]
-        else -> null
+    fun trackSample(track: Int): FloatArray? {
+        val kit = kitTracks
+        return when (track) {
+            in 0..5 -> kit?.getOrNull(track) ?: when (track) {
+                0 -> Synth.kick
+                1 -> Synth.snare
+                2 -> Synth.hat
+                3 -> Synth.clap
+                4 -> Synth.tom
+                else -> Synth.bell
+            }
+            6 -> micSamples[0]
+            7 -> micSamples[1]
+            else -> null
+        }
     }
 
     fun play(sample: FloatArray?, gain: Float = 1f) {

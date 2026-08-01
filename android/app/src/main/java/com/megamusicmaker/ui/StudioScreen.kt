@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.megamusicmaker.audio.AudioEngine
 import com.megamusicmaker.audio.MicSampler
+import com.megamusicmaker.audio.SampleLibrary
 import com.megamusicmaker.audio.Synth
 import com.megamusicmaker.audio.WavWriter
 import kotlinx.coroutines.Dispatchers
@@ -67,9 +68,9 @@ private val BgMid = Color(0xFF2D1B69)
 private val BgBot = Color(0xFF0F2557)
 private val CardBg = Color.White.copy(alpha = 0.08f)
 
-private class PadDef(val emoji: String, val label: String, val color: Color, val sample: FloatArray)
+private data class PadDef(val emoji: String, val label: String, val color: Color, val sample: FloatArray)
 
-private val pads = listOf(
+private val basePads = listOf(
     PadDef("🥁", "Boom", Color(0xFFE74C3C), Synth.kick),
     PadDef("🪘", "Bap", Color(0xFFE67E22), Synth.snare),
     PadDef("🎩", "Tss", Color(0xFFF1C40F), Synth.hat),
@@ -109,7 +110,7 @@ private val micEmojis = listOf("🦖", "🐱", "🚀", "🎉")
 /* ---------- main screen ---------- */
 
 @Composable
-fun StudioScreen(engine: AudioEngine) {
+fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -119,8 +120,31 @@ fun StudioScreen(engine: AudioEngine) {
     var swing by remember { mutableStateOf(0f) }
     var isPlaying by remember { mutableStateOf(false) }
     var isRecording by remember { mutableStateOf(false) }
+    var kitId by remember { mutableStateOf("synth") }
+    var melodicId by remember { mutableStateOf("piano") }
     val songs = remember { mutableStateListOf<Pair<String, Uri>>() }
     val currentStep by engine.stepFlow.collectAsState()
+    val libLoaded by library.loaded.collectAsState()
+
+    val currentKit = if (libLoaded) library.kits.find { it.id == kitId } else null
+    val melodicNotes = if (libLoaded) library.melodic.find { it.id == melodicId }?.notes else null
+    val pads = remember(currentKit) {
+        if (currentKit == null) basePads
+        else basePads.mapIndexed { i, p ->
+            when (i) {
+                in 0..5 -> p.copy(sample = currentKit.tracks[i])
+                6 -> p.copy(
+                    emoji = currentKit.bonus1Emoji, label = currentKit.bonus1Label,
+                    sample = currentKit.bonus1,
+                )
+                7 -> p.copy(
+                    emoji = currentKit.bonus2Emoji, label = currentKit.bonus2Label,
+                    sample = currentKit.bonus2,
+                )
+                else -> p
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -147,6 +171,25 @@ fun StudioScreen(engine: AudioEngine) {
         )
 
         Section("🥁 Tap the Sound Pads!") {
+            if (libLoaded && library.kits.isNotEmpty()) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 10.dp),
+                ) {
+                    Chip("🤖 Synth", kitId == "synth") {
+                        kitId = "synth"
+                        engine.kitTracks = null
+                    }
+                    for (kit in library.kits) {
+                        Chip(kit.label, kitId == kit.id) {
+                            kitId = kit.id
+                            engine.kitTracks = kit.tracks
+                        }
+                    }
+                }
+            }
             for (row in 0 until 3) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     for (col in 0 until 4) {
@@ -204,6 +247,19 @@ fun StudioScreen(engine: AudioEngine) {
         }
 
         Section("🌈 Rainbow Piano — every note sounds great!") {
+            if (libLoaded && library.melodic.isNotEmpty()) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 10.dp),
+                ) {
+                    Chip("🤖 Synth", melodicId == "synth") { melodicId = "synth" }
+                    for (bank in library.melodic) {
+                        Chip(bank.label, melodicId == bank.id) { melodicId = bank.id }
+                    }
+                }
+            }
             Row(
                 horizontalArrangement = Arrangement.spacedBy(5.dp),
                 verticalAlignment = Alignment.Bottom,
@@ -212,7 +268,7 @@ fun StudioScreen(engine: AudioEngine) {
                 for (i in 0 until 8) {
                     Box(Modifier.weight(1f)) {
                         PianoKey(keyEmojis[i], keyColors[i], (150 - i * 9).dp) {
-                            engine.play(Synth.piano[i], 0.9f)
+                            engine.play(melodicNotes?.get(i) ?: Synth.piano[i], 0.9f)
                         }
                     }
                 }
@@ -359,6 +415,28 @@ private fun SoundPad(emoji: String, label: String, color: Color, onHit: () -> Un
             Text(emoji, fontSize = 30.sp)
             Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
         }
+    }
+}
+
+@Composable
+private fun Chip(text: String, selected: Boolean, onClick: () -> Unit) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(
+                if (selected) Color(0xFFFFD93D).copy(alpha = 0.9f)
+                else Color.White.copy(alpha = 0.12f)
+            )
+            .pointerInput(text) { detectTapGestures { onClick() } }
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+    ) {
+        Text(
+            text,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            color = if (selected) Color(0xFF1A0B3D) else Color.White,
+        )
     }
 }
 
