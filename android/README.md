@@ -17,9 +17,18 @@ A full music production studio with a one-screen interface, running **100% offli
 - **Auto-Beat** generator: one tap always produces a musical groove.
 - **Pentatonic keys**: every melody stays in key.
 
-## 🛠 Building
+## 🛠 Getting the APK
 
-Open the `android/` folder in Android Studio (Ladybug or newer) and press Run — or from the command line:
+**Easiest**: every push to GitHub builds a signed APK automatically (see
+`.github/workflows/build-apk.yml`). Grab `pocket-studio.apk` from the
+repository's **Releases** page ("Pocket Studio APK (latest build)") or from
+the workflow run's artifacts, copy it to your phone, and install.
+
+Note: the committed signing keystore is a convenience key for personal
+sideloading only — generate a private key before any store distribution.
+
+**Or build locally**: open the `android/` folder in Android Studio (Ladybug
+or newer) and press Run — or from the command line:
 
 ```bash
 cd android
