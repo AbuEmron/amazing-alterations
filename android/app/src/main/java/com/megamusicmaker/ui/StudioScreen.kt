@@ -30,7 +30,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -46,6 +48,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -60,6 +63,7 @@ import com.megamusicmaker.audio.WavWriter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.pow
 import kotlin.random.Random
 
 /* ---------- palette & data ---------- */
@@ -111,6 +115,17 @@ private val micLabels = listOf("S1", "S2", "S3", "S4")
 /** Scale degree (0..6 = C..B) of each rainbow key - pentatonic C D E G A C D E. */
 private val keyDegrees = intArrayOf(0, 1, 2, 4, 5, 0, 1, 2)
 
+/** Simple-mode key MIDI notes for the sub bass bank (C2 pentatonic). */
+private val subSimpleMidis = intArrayOf(36, 38, 40, 43, 45, 48, 50, 52)
+
+private fun isBlackKey(midi: Int) = when (midi % 12) {
+    1, 3, 6, 8, 10 -> true
+    else -> false
+}
+
+/** Pitch class -> C-major scale degree, or -1 for non-diatonic notes. */
+private val pitchClassDegree = intArrayOf(0, -1, 1, -1, 2, 3, -1, 4, -1, 5, -1, 6)
+
 /* ---------- main screen ---------- */
 
 @Composable
@@ -128,6 +143,9 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
     var melodicId by remember { mutableStateOf("piano") }
     var magicChords by remember { mutableStateOf(false) }
     var chordLabel by remember { mutableStateOf("") }
+    var fullKeys by remember { mutableStateOf(false) }
+    var sliceSrc by remember { mutableStateOf(0) }
+    var sliceCount by remember { mutableStateOf(8) }
     val songs = remember { mutableStateListOf<Pair<String, Uri>>() }
     val currentStep by engine.stepFlow.collectAsState()
     val libLoaded by library.loaded.collectAsState()
@@ -253,18 +271,45 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
         }
 
         Section("Keys") {
-            if (libLoaded && library.melodic.isNotEmpty()) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 10.dp),
-                ) {
-                    Chip("Synth", melodicId == "synth") { melodicId = "synth" }
+            // Route a MIDI note through the right bank, with optional Smart Chords
+            val playMidi: (Int) -> Unit = { midi ->
+                when {
+                    melodicId == "sub" -> SampleLibrary.noteFor(Synth.subAnchors, midi)
+                        ?.let { (s, r) -> engine.play(s, 1f, 0, r) }
+                    melodicId == "piano" && libLoaded && library.pianoAnchors.isNotEmpty() ->
+                        SampleLibrary.noteFor(library.pianoAnchors, midi)
+                            ?.let { (s, r) -> engine.play(s, 0.9f, 0, r) }
+                    else -> {
+                        val base = melodicNotes?.get(0) ?: Synth.piano[0]  // bank's C5 = MIDI 72
+                        engine.play(base, 0.9f, 0, 2.0.pow((midi - 72) / 12.0).toFloat())
+                    }
+                }
+                if (magicChords && melodicId != "sub") {
+                    val degree = pitchClassDegree[((midi % 12) + 12) % 12]
+                    if (degree >= 0) {
+                        val chord = ChordBrain.pick(degree)
+                        val bank = (if (libLoaded) {
+                            library.melodic.find { it.id == melodicId }?.chordNotes
+                        } else null) ?: Synth.chordNotes
+                        chord.tones.forEachIndexed { k, deg -> engine.play(bank[deg], 0.45f, k * 30) }
+                        chordLabel = chord.display
+                    }
+                }
+            }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 10.dp),
+            ) {
+                Chip("Synth", melodicId == "synth") { melodicId = "synth" }
+                if (libLoaded) {
                     for (bank in library.melodic) {
                         Chip(bank.label, melodicId == bank.id) { melodicId = bank.id }
                     }
                 }
+                Chip("Sub Bass", melodicId == "sub") { melodicId = "sub" }
+                Chip("88 Keys", fullKeys) { fullKeys = !fullKeys }
             }
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
@@ -290,24 +335,32 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
                     )
                 }
             }
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(5.dp),
-                verticalAlignment = Alignment.Bottom,
-                modifier = Modifier.height(150.dp),
-            ) {
-                for (i in 0 until 8) {
-                    Box(Modifier.weight(1f)) {
-                        PianoKey(keyLabels[i], keyColors[i], (150 - i * 9).dp) {
-                            engine.play(melodicNotes?.get(i) ?: Synth.piano[i], 0.9f)
-                            if (magicChords) {
-                                val chord = ChordBrain.pick(keyDegrees[i])
-                                val bank = (if (libLoaded) {
-                                    library.melodic.find { it.id == melodicId }?.chordNotes
-                                } else null) ?: Synth.chordNotes
-                                chord.tones.forEachIndexed { k, deg ->
-                                    engine.play(bank[deg], 0.45f, k * 30)
+            if (fullKeys) {
+                FullKeyboard(playMidi)
+            } else {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                    verticalAlignment = Alignment.Bottom,
+                    modifier = Modifier.height(150.dp),
+                ) {
+                    for (i in 0 until 8) {
+                        Box(Modifier.weight(1f)) {
+                            PianoKey(keyLabels[i], keyColors[i], (150 - i * 9).dp) {
+                                if (melodicId == "sub") {
+                                    playMidi(subSimpleMidis[i])
+                                } else {
+                                    engine.play(melodicNotes?.get(i) ?: Synth.piano[i], 0.9f)
+                                    if (magicChords) {
+                                        val chord = ChordBrain.pick(keyDegrees[i])
+                                        val bank = (if (libLoaded) {
+                                            library.melodic.find { it.id == melodicId }?.chordNotes
+                                        } else null) ?: Synth.chordNotes
+                                        chord.tones.forEachIndexed { k, deg ->
+                                            engine.play(bank[deg], 0.45f, k * 30)
+                                        }
+                                        chordLabel = chord.display
+                                    }
                                 }
-                                chordLabel = chord.display
                             }
                         }
                     }
@@ -322,6 +375,78 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 6.dp),
+                )
+            }
+        }
+
+        Section("Slicer") {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp),
+            ) {
+                for (i in 0 until AudioEngine.MIC_SLOTS) {
+                    Chip("S${i + 1}", sliceSrc == i) { sliceSrc = i }
+                }
+                for (n in listOf(4, 8, 16)) {
+                    Chip("$n", sliceCount == n) { sliceCount = n }
+                }
+            }
+            @Suppress("UNUSED_EXPRESSION") micVersion
+            val srcSample = engine.micSamples[sliceSrc]
+            if (srcSample == null) {
+                Text(
+                    "Record something into S${sliceSrc + 1} in the Sampler below, then chop it here into $sliceCount playable slices.",
+                    fontSize = 12.sp,
+                    color = Color.White.copy(alpha = 0.7f),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            } else {
+                val slices = remember(sliceSrc, sliceCount, micVersion) {
+                    val len = (srcSample.size / sliceCount).coerceAtLeast(1)
+                    Array(sliceCount) { i ->
+                        val from = i * len
+                        val to = if (i == sliceCount - 1) srcSample.size else (i + 1) * len
+                        srcSample.copyOfRange(from.coerceAtMost(srcSample.size - 1), to.coerceAtMost(srcSample.size))
+                    }
+                }
+                for (rowStart in 0 until sliceCount step 8) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        for (i in rowStart until minOf(rowStart + 8, sliceCount)) {
+                            val hue = trackColors[i % trackColors.size]
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .aspectRatio(1f)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(Brush.linearGradient(listOf(hue, hue.copy(alpha = 0.6f))))
+                                    .pointerInput(i, sliceSrc, sliceCount) {
+                                        detectTapGestures(onPress = {
+                                            engine.play(slices[i])
+                                            tryAwaitRelease()
+                                        })
+                                    },
+                            ) {
+                                Text(
+                                    "${i + 1}",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                )
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(6.dp))
+                }
+                Text(
+                    "Tap slices to perform — resample your own sounds into new rhythms.",
+                    fontSize = 12.sp,
+                    color = Color.White.copy(alpha = 0.7f),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
         }
@@ -610,6 +735,68 @@ private fun SequencerGrid(
                             },
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FullKeyboard(playMidi: (Int) -> Unit) {
+    val density = LocalDensity.current
+    val whiteW = 42.dp
+    val scroll = rememberScrollState()
+    val whiteMidis = remember { (21..108).filterNot { isBlackKey(it) } }
+    LaunchedEffect(Unit) {
+        // open the keyboard centered near middle C
+        val c4Index = whiteMidis.indexOf(60)
+        scroll.scrollTo(with(density) { (whiteW * (c4Index - 4)).toPx() }.toInt().coerceAtLeast(0))
+    }
+    Box(Modifier.horizontalScroll(scroll)) {
+        Row {
+            for (midi in whiteMidis) {
+                Box(
+                    contentAlignment = Alignment.BottomCenter,
+                    modifier = Modifier
+                        .width(whiteW)
+                        .height(170.dp)
+                        .padding(horizontal = 1.dp)
+                        .clip(RoundedCornerShape(bottomStart = 6.dp, bottomEnd = 6.dp))
+                        .background(Color(0xFFF4F1E8))
+                        .pointerInput(midi) {
+                            detectTapGestures(onPress = {
+                                playMidi(midi)
+                                tryAwaitRelease()
+                            })
+                        },
+                ) {
+                    if (midi % 12 == 0) {
+                        Text(
+                            "C${midi / 12 - 1}",
+                            fontSize = 10.sp,
+                            color = Color(0xFF8A8577),
+                            modifier = Modifier.padding(bottom = 4.dp),
+                        )
+                    }
+                }
+            }
+        }
+        whiteMidis.forEachIndexed { wIdx, midi ->
+            val black = midi + 1
+            if (black <= 108 && isBlackKey(black)) {
+                Box(
+                    modifier = Modifier
+                        .offset(x = whiteW * (wIdx + 1) - 13.dp)
+                        .width(26.dp)
+                        .height(104.dp)
+                        .clip(RoundedCornerShape(bottomStart = 5.dp, bottomEnd = 5.dp))
+                        .background(Color(0xFF17151F))
+                        .pointerInput(black) {
+                            detectTapGestures(onPress = {
+                                playMidi(black)
+                                tryAwaitRelease()
+                            })
+                        },
+                )
             }
         }
     }

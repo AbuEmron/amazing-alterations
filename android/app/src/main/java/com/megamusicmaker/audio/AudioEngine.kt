@@ -29,8 +29,8 @@ class AudioEngine {
         private const val BUF_FRAMES = 512
     }
 
-    private class Voice(val sample: FloatArray, val gain: Float, var offset: Int) {
-        var pos = 0
+    private class Voice(val sample: FloatArray, val gain: Float, var offset: Int, val rate: Float) {
+        var pos = 0.0
     }
 
     private val lock = Any()
@@ -77,11 +77,12 @@ class AudioEngine {
         }
     }
 
-    fun play(sample: FloatArray?, gain: Float = 1f, delayMs: Int = 0) {
+    /** [rate] varispeed-pitches the sample: 2^(semitones/12). 1.0 = original pitch. */
+    fun play(sample: FloatArray?, gain: Float = 1f, delayMs: Int = 0, rate: Float = 1f) {
         if (sample == null) return
         val offset = delayMs * SR / 1000
         synchronized(lock) {
-            if (voices.size < MAX_VOICES) voices.add(Voice(sample, gain, offset))
+            if (voices.size < MAX_VOICES) voices.add(Voice(sample, gain, offset, rate))
         }
     }
 
@@ -181,19 +182,21 @@ class AudioEngine {
                     val s = v.sample
                     var out = v.offset
                     var p = v.pos
-                    while (out < BUF_FRAMES && p < s.size) {
-                        mix[out] += s[p] * v.gain
+                    val r = v.rate.toDouble()
+                    while (out < BUF_FRAMES && p < s.size - 1) {
+                        val i0 = p.toInt()
+                        val frac = (p - i0).toFloat()
+                        mix[out] += (s[i0] + (s[i0 + 1] - s[i0]) * frac) * v.gain
                         out++
-                        p++
+                        p += r
                     }
                     v.pos = p
                     v.offset = 0
-                    if (p >= s.size) voices.removeAt(i) else i++
+                    if (p >= s.size - 1) voices.removeAt(i) else i++
                 }
                 frameClock += BUF_FRAMES
             }
-            // Soft limiter so stacking 20 sounds gets warm, never harsh
-            for (j in mix.indices) mix[j] = tanh(mix[j] * 0.8f)
+            master(mix)
             if (recording) synchronized(recChunks) { recChunks.add(mix.copyOf()) }
             track.write(mix, 0, BUF_FRAMES, AudioTrack.WRITE_BLOCKING)
         }
@@ -202,6 +205,41 @@ class AudioEngine {
         } catch (_: IllegalStateException) {
         }
         track.release()
+    }
+
+    /* ---- automatic mastering chain: everything you hear (and record) passes
+       through a rumble filter, program compressor, makeup gain, and soft
+       limiter - so every beat comes out loud, glued, and clip-free. ---- */
+
+    private var hpState = 0f
+    private var compEnv = 0f
+    private val hpCoef = (2.0 * Math.PI * 25.0 / SR).toFloat()          // ~25 Hz rumble cut
+    private val attackCoef = Math.exp(-1.0 / (0.005 * SR)).toFloat()    // 5 ms attack
+    private val releaseCoef = Math.exp(-1.0 / (0.12 * SR)).toFloat()    // 120 ms release
+
+    private fun master(mix: FloatArray) {
+        val threshold = 0.45f
+        val invRatio = 1f / 3f
+        val makeup = 1.35f
+        for (j in mix.indices) {
+            var x = mix[j]
+            // one-pole high-pass removes sub-sonic rumble before compression
+            hpState += hpCoef * (x - hpState)
+            x -= hpState
+            // program compressor with envelope follower
+            val level = if (x >= 0) x else -x
+            compEnv = if (level > compEnv) {
+                attackCoef * compEnv + (1 - attackCoef) * level
+            } else {
+                releaseCoef * compEnv + (1 - releaseCoef) * level
+            }
+            var y = x
+            if (compEnv > threshold) {
+                y *= (threshold + (compEnv - threshold) * invRatio) / compEnv
+            }
+            // makeup gain + soft limiter
+            mix[j] = tanh(y * makeup)
+        }
     }
 
     /** Called with [lock] held: queue every step that falls inside this buffer. */
@@ -213,7 +251,7 @@ class AudioEngine {
                 if (pattern[t][step]) {
                     val s = trackSample(t)
                     if (s != null && voices.size < MAX_VOICES) {
-                        voices.add(Voice(s, 1f, offset))
+                        voices.add(Voice(s, 1f, offset, 1f))
                     }
                 }
             }

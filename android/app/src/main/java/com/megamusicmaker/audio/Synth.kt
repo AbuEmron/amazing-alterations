@@ -214,4 +214,28 @@ object Synth {
     private val chordFreqs = doubleArrayOf(261.63, 293.66, 329.63, 349.23, 392.0, 440.0, 493.88)
 
     val chordNotes: Array<FloatArray> = Array(chordFreqs.size) { melodicNote(chordFreqs[it], 1.1) }
+
+    /* ---------- sub bass (808-style: pitch-drop attack, saturated sine) ---------- */
+
+    private fun subBassNote(f: Double): FloatArray {
+        val dur = 1.6
+        val out = buf(dur)
+        var phase = 0.0
+        for (i in out.indices) {
+            val t = i.toDouble() / SR
+            // starts an octave up and drops fast for that 808 knock
+            val freq = f * (1.0 + exp(-t / 0.02))
+            phase += 2 * PI * freq / SR
+            val body = kotlin.math.tanh(1.6 * sin(phase))
+            out[i] = (body * expEnv(t, dur, 3.5)).toFloat()
+        }
+        return normalize(out, 0.85f)
+    }
+
+    /** Sub bass anchors at C1 / C2 / C3 (MIDI 24 / 36 / 48) for rate-pitching. */
+    val subAnchors: List<Pair<Int, FloatArray>> = listOf(
+        24 to subBassNote(32.70),
+        36 to subBassNote(65.41),
+        48 to subBassNote(130.81),
+    )
 }

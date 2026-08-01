@@ -39,6 +39,10 @@ class SampleLibrary(private val assets: AssetManager) {
     var melodic: List<MelodicBank> = emptyList()
         private set
 
+    /** Salamander anchors across the 88-key range: sorted (midi, sample). */
+    var pianoAnchors: List<Pair<Int, FloatArray>> = emptyList()
+        private set
+
     fun loadAsync() {
         Thread({
             try {
@@ -51,6 +55,7 @@ class SampleLibrary(private val assets: AssetManager) {
     }
 
     private fun load() {
+        loadPianoAnchors()
         val piano = notes("piano")
         val glock = notes("glock")
         val marimba = notes("marimba")
@@ -90,6 +95,31 @@ class SampleLibrary(private val assets: AssetManager) {
     }
 
     private fun notes(dir: String) = Array(8) { wav("samples/$dir/n$it.wav") }
+
+    private val anchorMidis = intArrayOf(21, 24, 30, 36, 42, 48, 54, 60, 66, 72, 78, 84, 90, 96, 102, 108)
+
+    private fun loadPianoAnchors() {
+        val loaded = ArrayList<Pair<Int, FloatArray>>()
+        for (midi in anchorMidis) {
+            val s = try {
+                wav("samples/piano88/m$midi.wav")
+            } catch (_: Exception) {
+                FloatArray(0)
+            }
+            if (s.isNotEmpty()) loaded.add(midi to s)
+        }
+        pianoAnchors = loaded
+    }
+
+    companion object {
+        /** Nearest-anchor lookup: returns the sample and varispeed rate for [midi]. */
+        fun noteFor(anchors: List<Pair<Int, FloatArray>>, midi: Int): Pair<FloatArray, Float>? {
+            if (anchors.isEmpty()) return null
+            val (aMidi, sample) = anchors.minByOrNull { kotlin.math.abs(it.first - midi) }!!
+            val rate = Math.pow(2.0, (midi - aMidi) / 12.0).toFloat()
+            return sample to rate
+        }
+    }
 
     /** Semitone offsets from the bank's C5 sample down to C4..B4. */
     private val chordSemis = intArrayOf(-12, -10, -8, -7, -5, -3, -1)

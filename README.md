@@ -15,9 +15,10 @@ Two versions live in this repo:
 |---|---|
 | **Pads** | 12 performance pads — kick, snare, hats, FX. Switch between the synth kit, a real TR-808, and orchestral percussion. |
 | **Step Sequencer** | 16 steps × 8 tracks with BPM and swing controls. Paint a beat or press **Auto-Beat** for an instant groove. |
-| **Keys** | Pentatonic keyboard playable as a real grand piano, glockenspiel, marimba, or synth — with **Smart Chords** auto-harmonization. |
+| **Keys** | Pentatonic quick keys or a **full 88-key piano** (A0–C8, real Salamander samples across the range), playable as grand piano, glockenspiel, marimba, synth, or **808-style sub bass** — with **Smart Chords** auto-harmonization. |
+| **Slicer** | Chop any recorded sample into 4/8/16 playable slices and perform them like an MPC. |
 | **Sampler** | Hold-to-record mic sampler; two sample slots feed the sequencer as extra tracks. |
-| **Record** | One-button master-bus recording to WAV. |
+| **Record** | One-button recording of the **auto-mastered** master bus (rumble filter → program compressor → makeup gain → soft limiter) to WAV. |
 
 ## The Android app goes further
 

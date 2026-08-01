@@ -15,6 +15,9 @@ A full music production studio with a one-screen interface, running **100% offli
 - **Swing control** shifts off-beats for real humanized rhythm; **Smart Chords** auto-harmonizes the keys.
 - **What-you-hear-is-what-you-get recording**: the song recorder taps the master mix bus and writes standard 16-bit WAV files.
 - **Auto-Beat** generator: one tap always produces a musical groove.
+- **Automatic mastering**: every buffer passes a rumble filter, program compressor, makeup gain, and soft limiter — beats come out loud, glued, and clip-free, live and in recordings.
+- **Full 88-key piano** (A0–C8) built on 16 real Salamander anchor samples with real-time varispeed pitching; plus an 808-style **sub bass** bank.
+- **Sample slicer**: chop mic recordings into 4/8/16 performable slices.
 - **Pentatonic keys**: every melody stays in key.
 
 ## 🛠 Getting the APK
