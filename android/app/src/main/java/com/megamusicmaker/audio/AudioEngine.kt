@@ -25,6 +25,7 @@ class AudioEngine {
         const val STEPS = 16
         const val TRACKS = 8       // 6 synth drums + 2 of your own recorded sounds
         const val MIC_SLOTS = 4
+        const val PATTERNS = 4     // A / B / C / D, chainable into a song
         private const val MAX_VOICES = 64
         private const val BUF_FRAMES = 512
     }
@@ -45,7 +46,24 @@ class AudioEngine {
     @Volatile var recording = false
         private set
 
-    val pattern = Array(TRACKS) { BooleanArray(STEPS) }
+    /** Four patterns (A-D), each TRACKS x STEPS; [currentPattern] selects the live one. */
+    val patterns = Array(PATTERNS) { Array(TRACKS) { BooleanArray(STEPS) } }
+    val accents = Array(PATTERNS) { Array(TRACKS) { BooleanArray(STEPS) } }
+    @Volatile var currentPattern = 0
+    @Volatile var chain = false        // song mode: cycle non-empty patterns A->B->C->D
+
+    /** The active pattern/accents - all UI editing goes through these. */
+    val pattern: Array<BooleanArray> get() = patterns[currentPattern]
+    val accent: Array<BooleanArray> get() = accents[currentPattern]
+
+    /* per-track mixer */
+    val trackGain = FloatArray(TRACKS) { 1f }
+    val trackMute = BooleanArray(TRACKS)
+
+    @Volatile var metronome = false
+    @Volatile var reverbMix = 0f       // 0..1 master reverb send
+    @Volatile var delayMix = 0f        // 0..1 master delay send (tempo-synced dotted 8th)
+
     val micSamples = arrayOfNulls<FloatArray>(MIC_SLOTS)
 
     /** Active drum kit for tracks 0-5; null means the built-in synth kit. */
@@ -53,6 +71,9 @@ class AudioEngine {
 
     /** Current sequencer column for the UI highlight; -1 when stopped. */
     val stepFlow = MutableStateFlow(-1)
+
+    /** Pattern currently playing (changes while chaining). */
+    val patternFlow = MutableStateFlow(0)
 
     private val recChunks = ArrayList<FloatArray>()
 
@@ -196,6 +217,7 @@ class AudioEngine {
                 }
                 frameClock += BUF_FRAMES
             }
+            processFx(mix)
             master(mix)
             if (recording) synchronized(recChunks) { recChunks.add(mix.copyOf()) }
             track.write(mix, 0, BUF_FRAMES, AudioTrack.WRITE_BLOCKING)
@@ -247,18 +269,94 @@ class AudioEngine {
         val stepFrames = 60.0 / bpm / 4.0 * SR
         while (nextStepFrame < frameClock + BUF_FRAMES) {
             val offset = (nextStepFrame - frameClock).coerceAtLeast(0L).toInt()
+            val pat = patterns[currentPattern]
+            val acc = accents[currentPattern]
             for (t in 0 until TRACKS) {
-                if (pattern[t][step]) {
+                if (pat[t][step] && !trackMute[t]) {
                     val s = trackSample(t)
                     if (s != null && voices.size < MAX_VOICES) {
-                        voices.add(Voice(s, 1f, offset, 1f))
+                        val g = (if (acc[t][step]) 1.25f else 0.9f) * trackGain[t]
+                        voices.add(Voice(s, g, offset, 1f))
                     }
                 }
+            }
+            if (metronome && step % 4 == 0 && voices.size < MAX_VOICES) {
+                voices.add(Voice(Synth.click, if (step == 0) 0.5f else 0.28f, offset, 1f))
             }
             stepFlow.value = step
             val dur = if (step % 2 == 0) stepFrames * (1 + swing) else stepFrames * (1 - swing)
             step = (step + 1) % STEPS
+            if (step == 0 && chain) {
+                advancePattern()
+                patternFlow.value = currentPattern
+            }
             nextStepFrame += dur.roundToLong()
+        }
+    }
+
+    /** Song mode: move to the next pattern that has any steps in it. */
+    private fun advancePattern() {
+        for (k in 1..PATTERNS) {
+            val cand = (currentPattern + k) % PATTERNS
+            if (patterns[cand].any { row -> row.any { it } }) {
+                currentPattern = cand
+                return
+            }
+        }
+    }
+
+    /* ---- master FX: tempo-synced dotted-8th delay + Schroeder reverb ---- */
+
+    private val delayBuf = FloatArray(SR * 2)
+    private var delayPos = 0
+    private val combBufs = arrayOf(
+        FloatArray(1116), FloatArray(1188), FloatArray(1277), FloatArray(1356)
+    )
+    private val combPos = IntArray(4)
+    private val combFb = floatArrayOf(0.805f, 0.795f, 0.783f, 0.769f)
+    private val apBufs = arrayOf(FloatArray(556), FloatArray(441))
+    private val apPos = IntArray(2)
+
+    private fun processFx(mix: FloatArray) {
+        val dMix = delayMix
+        val rMix = reverbMix
+        if (dMix <= 0.001f && rMix <= 0.001f) return
+        val dLen = (3.0 * 60.0 / bpm / 4.0 * SR).toInt().coerceIn(1024, delayBuf.size - 1)
+        for (j in mix.indices) {
+            val dry = mix[j]
+            // delay
+            var wet = 0f
+            if (dMix > 0.001f) {
+                val readPos = (delayPos - dLen + delayBuf.size) % delayBuf.size
+                val dOut = delayBuf[readPos]
+                delayBuf[delayPos] = dry + dOut * 0.4f
+                delayPos = (delayPos + 1) % delayBuf.size
+                wet += dOut * dMix * 0.7f
+            }
+            // reverb
+            if (rMix > 0.001f) {
+                val input = dry * 0.35f
+                var rev = 0f
+                for (c in 0 until 4) {
+                    val buf = combBufs[c]
+                    val p = combPos[c]
+                    val yc = buf[p]
+                    buf[p] = input + yc * combFb[c]
+                    combPos[c] = (p + 1) % buf.size
+                    rev += yc
+                }
+                rev *= 0.25f
+                for (a in 0 until 2) {
+                    val buf = apBufs[a]
+                    val p = apPos[a]
+                    val bufOut = buf[p]
+                    buf[p] = rev + bufOut * 0.5f
+                    apPos[a] = (p + 1) % buf.size
+                    rev = bufOut - rev * 0.5f
+                }
+                wet += rev * rMix
+            }
+            mix[j] = dry + wet
         }
     }
 }

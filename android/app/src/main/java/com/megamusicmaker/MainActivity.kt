@@ -7,6 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import com.megamusicmaker.audio.AudioEngine
+import com.megamusicmaker.audio.ProjectStore
 import com.megamusicmaker.audio.SampleLibrary
 import com.megamusicmaker.ui.StudioScreen
 
@@ -18,6 +19,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        ProjectStore.load(this, engine)
         library = SampleLibrary(assets)
         library.loadAsync()
         setContent {
@@ -34,6 +36,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onStop() {
         engine.stop()
+        val appContext = applicationContext
+        Thread { ProjectStore.save(appContext, engine) }.start()
         super.onStop()
     }
 }

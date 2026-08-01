@@ -14,9 +14,10 @@ Two versions live in this repo:
 | Studio section | What it does |
 |---|---|
 | **Pads** | 12 performance pads — kick, snare, hats, FX. Switch between the synth kit, a real TR-808, and orchestral percussion. |
-| **Step Sequencer** | 16 steps × 8 tracks with BPM and swing controls. Paint a beat or press **Auto-Beat** for an instant groove. |
+| **Step Sequencer** | 16 steps × 8 tracks × **4 chainable patterns (A–D)** with BPM, swing, per-step **accents** (long-press), and a metronome. **Chain** mode plays patterns in sequence — song arrangement on one screen. |
 | **Keys** | Pentatonic quick keys or a **full 88-key piano** (A0–C8, real Salamander samples across the range), playable as grand piano, glockenspiel, marimba, synth, or **808-style sub bass** — with **Smart Chords** auto-harmonization. |
 | **Slicer** | Chop any recorded sample into 4/8/16 playable slices and perform them like an MPC. |
+| **Mixer & FX** | Per-track level and mute, master **reverb**, and **tempo-synced delay** — all feeding the auto-master chain. |
 | **Sampler** | Hold-to-record mic sampler; two sample slots feed the sequencer as extra tracks. |
 | **Voice Booth** | Record vocals up to 5 minutes; every take is **auto-mastered** (noise gate, 80 Hz cleanup, compression, presence EQ, loudness), saved as WAV, and can be sent to the Sampler/Slicer. |
 | **Record** | One-button recording of the **auto-mastered** master bus (rumble filter → program compressor → makeup gain → soft limiter) to WAV. |
@@ -28,6 +29,10 @@ Two versions live in this repo:
 - **Swing control** for humanized rhythm
 - **WAV export** straight into your Music folder
 - **Zero internet permission** — the OS itself guarantees nothing ever leaves your device
+
+## Never loses work
+
+The whole session — all four patterns, accents, mixer, FX, tempo, kit selection, and your recorded samples — is saved automatically when the app goes to background and restored on launch, like any professional DAW.
 
 ## Why it's easy
 

@@ -20,6 +20,9 @@ A full music production studio with a one-screen interface, running **100% offli
 - **Sample slicer**: chop mic recordings into 4/8/16 performable slices.
 - **Voice Booth**: long-form vocal recording with automatic vocal mastering (gate, high-pass, 4:1 compression, presence EQ, loudness normalization) applied offline on stop; takes save as WAV and can feed the sampler/slicer.
 - **Pentatonic keys**: every melody stays in key.
+- **Song mode**: four chainable patterns (A-D) with per-step accents and a metronome.
+- **Mixer & FX**: per-track gain/mute, Schroeder reverb, tempo-synced dotted-8th delay.
+- **Project persistence**: full session auto-saves on background and restores on launch; WAV export uses TPDF dither like professional DAW renders.
 
 ## 🛠 Getting the APK
 

@@ -137,12 +137,16 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
 
     var patternVersion by remember { mutableStateOf(0) }
     var micVersion by remember { mutableStateOf(0) }
-    var bpm by remember { mutableStateOf(110f) }
-    var swing by remember { mutableStateOf(0f) }
+    var bpm by remember { mutableStateOf(engine.bpm.toFloat()) }
+    var swing by remember { mutableStateOf(engine.swing) }
     var isPlaying by remember { mutableStateOf(false) }
     var isRecording by remember { mutableStateOf(false) }
-    var kitId by remember { mutableStateOf("synth") }
-    var melodicId by remember { mutableStateOf("piano") }
+    var kitId by remember { mutableStateOf(ProjectStore.kitId) }
+    var melodicId by remember { mutableStateOf(ProjectStore.melodicId) }
+    var patternSel by remember { mutableStateOf(engine.currentPattern) }
+    var chainOn by remember { mutableStateOf(engine.chain) }
+    var clickOn by remember { mutableStateOf(engine.metronome) }
+    var mixerVersion by remember { mutableStateOf(0) }
     var magicChords by remember { mutableStateOf(false) }
     var chordLabel by remember { mutableStateOf("") }
     var fullKeys by remember { mutableStateOf(false) }
@@ -151,6 +155,24 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
     val songs = remember { mutableStateListOf<Pair<String, Uri>>() }
     val currentStep by engine.stepFlow.collectAsState()
     val libLoaded by library.loaded.collectAsState()
+    val livePattern by engine.patternFlow.collectAsState()
+
+    // While chaining, follow the playing pattern in the grid
+    LaunchedEffect(livePattern) {
+        if (engine.chain && patternSel != livePattern) {
+            patternSel = livePattern
+            patternVersion++
+        }
+    }
+    // Restore the saved kit selection once samples finish loading
+    LaunchedEffect(libLoaded) {
+        if (libLoaded) {
+            engine.kitTracks = library.kits.find { it.id == kitId }?.tracks
+        }
+    }
+    // Keep persisted UI selections in sync
+    LaunchedEffect(kitId) { ProjectStore.kitId = kitId }
+    LaunchedEffect(melodicId) { ProjectStore.melodicId = melodicId }
 
     val currentKit = if (libLoaded) library.kits.find { it.id == kitId } else null
     val melodicNotes = if (libLoaded) library.melodic.find { it.id == melodicId }?.notes else null
@@ -251,6 +273,28 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
                 }
             }
             Spacer(Modifier.height(10.dp))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 6.dp),
+            ) {
+                for (p in 0 until AudioEngine.PATTERNS) {
+                    Chip(('A' + p).toString(), patternSel == p) {
+                        engine.currentPattern = p
+                        patternSel = p
+                        patternVersion++
+                    }
+                }
+                Chip("Chain", chainOn) {
+                    chainOn = !chainOn
+                    engine.chain = chainOn
+                }
+                Chip("Click", clickOn) {
+                    clickOn = !clickOn
+                    engine.metronome = clickOn
+                }
+            }
             LabeledSlider("BPM", "${bpm.toInt()}", bpm, 60f..180f) {
                 bpm = it
                 engine.bpm = it.toInt()
@@ -262,7 +306,70 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
             Spacer(Modifier.height(6.dp))
             SequencerGrid(engine, currentStep, patternVersion, micVersion) { patternVersion++ }
             Text(
-                "S1 & S2 rows play your recorded samples. Tap a row label to preview it.",
+                "Tap a step to place it, long-press an active step to accent it. " +
+                    "A-D are patterns; Chain plays them in sequence as a song. " +
+                    "S1 & S2 rows play your recorded samples.",
+                fontSize = 12.sp,
+                color = Color.White.copy(alpha = 0.7f),
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 6.dp),
+            )
+        }
+
+        Section("Mixer & FX") {
+            @Suppress("UNUSED_EXPRESSION") mixerVersion
+            for (t in 0 until AudioEngine.TRACKS) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        trackLabels[t],
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White.copy(alpha = 0.85f),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.width(34.dp),
+                    )
+                    Chip("M", engine.trackMute[t]) {
+                        engine.trackMute[t] = !engine.trackMute[t]
+                        mixerVersion++
+                    }
+                    Slider(
+                        value = engine.trackGain[t],
+                        onValueChange = {
+                            engine.trackGain[t] = it
+                            mixerVersion++
+                        },
+                        valueRange = 0f..1.5f,
+                        colors = SliderDefaults.colors(
+                            thumbColor = trackColors[t],
+                            activeTrackColor = trackColors[t],
+                            inactiveTrackColor = Color.White.copy(alpha = 0.2f),
+                        ),
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = 8.dp)
+                            .height(28.dp),
+                    )
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            var reverb by remember { mutableStateOf(engine.reverbMix) }
+            var delayFx by remember { mutableStateOf(engine.delayMix) }
+            LabeledSlider("Reverb", "${(reverb * 100).toInt()}%", reverb, 0f..1f) {
+                reverb = it
+                engine.reverbMix = it
+            }
+            LabeledSlider("Delay", "${(delayFx * 100).toInt()}%", delayFx, 0f..1f) {
+                delayFx = it
+                engine.delayMix = it
+            }
+            Text(
+                "Per-track level and mute. Delay is tempo-synced (dotted 8th). " +
+                    "Everything still runs through the auto-master chain.",
                 fontSize = 12.sp,
                 color = Color.White.copy(alpha = 0.7f),
                 textAlign = TextAlign.Center,
@@ -822,6 +929,7 @@ private fun SequencerGrid(
                 )
                 for (s in 0 until AudioEngine.STEPS) {
                     val on = engine.pattern[t][s]
+                    val accented = on && engine.accent[t][s]
                     val cellBg = when {
                         on && hasSample -> trackColors[t]
                         on -> trackColors[t].copy(alpha = 0.35f)
@@ -829,7 +937,8 @@ private fun SequencerGrid(
                         else -> Color.White.copy(alpha = 0.10f)
                     }
                     Box(
-                        Modifier
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
                             .padding(2.dp)
                             .size(30.dp)
                             .clip(RoundedCornerShape(7.dp))
@@ -840,13 +949,29 @@ private fun SequencerGrid(
                                 } else Modifier
                             )
                             .pointerInput(t, s) {
-                                detectTapGestures {
-                                    engine.pattern[t][s] = !engine.pattern[t][s]
-                                    if (engine.pattern[t][s]) engine.play(engine.trackSample(t))
-                                    onToggled()
-                                }
+                                detectTapGestures(
+                                    onTap = {
+                                        engine.pattern[t][s] = !engine.pattern[t][s]
+                                        if (!engine.pattern[t][s]) engine.accent[t][s] = false
+                                        if (engine.pattern[t][s]) engine.play(engine.trackSample(t))
+                                        onToggled()
+                                    },
+                                    onLongPress = {
+                                        if (engine.pattern[t][s]) {
+                                            engine.accent[t][s] = !engine.accent[t][s]
+                                            if (engine.accent[t][s]) {
+                                                engine.play(engine.trackSample(t), 1.25f)
+                                            }
+                                            onToggled()
+                                        }
+                                    },
+                                )
                             },
-                    )
+                    ) {
+                        if (accented) {
+                            Text("●", fontSize = 10.sp, color = Color.White)
+                        }
+                    }
                 }
             }
         }

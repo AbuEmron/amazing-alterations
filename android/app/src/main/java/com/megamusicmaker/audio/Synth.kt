@@ -238,4 +238,14 @@ object Synth {
         36 to subBassNote(65.41),
         48 to subBassNote(130.81),
     )
+
+    /** Short metronome click. */
+    val click: FloatArray = run {
+        val out = buf(0.03)
+        for (i in out.indices) {
+            val t = i.toDouble() / SR
+            out[i] = (sin(2 * PI * 2000.0 * t) * expEnv(t, 0.03, 8.0)).toFloat()
+        }
+        normalize(out, 0.8f)
+    }
 }
