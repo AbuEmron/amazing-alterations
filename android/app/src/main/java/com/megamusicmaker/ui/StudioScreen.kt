@@ -73,10 +73,13 @@ import kotlin.random.Random
 
 /* ---------- palette & data ---------- */
 
-private val BgTop = Color(0xFF1A0B3D)
-private val BgMid = Color(0xFF2D1B69)
-private val BgBot = Color(0xFF0F2557)
-private val CardBg = Color.White.copy(alpha = 0.08f)
+private val BgTop = Color(0xFF15171B)
+private val BgMid = Color(0xFF101216)
+private val BgBot = Color(0xFF0B0C0F)
+private val CardBg = Color(0xFF1A1C21)
+private val PadBg = Color(0xFF23262C)
+private val Accent = Color(0xFFFFB020)
+private val TextDim = Color(0xFF9AA0A9)
 
 private data class PadDef(val emoji: String, val label: String, val color: Color, val sample: FloatArray)
 
@@ -96,8 +99,8 @@ private val basePads = listOf(
 )
 
 private val trackLabels = listOf(
-    "🥁", "🪘", "🎩", "👏",
-    "🛢", "🔔", "S1", "S2",
+    "KCK", "SNR", "HAT", "CLP",
+    "TOM", "BEL", "S1", "S2",
 )
 
 private val trackColors = listOf(
@@ -106,7 +109,7 @@ private val trackColors = listOf(
 )
 
 private val keyColors = listOf(
-    Color(0xFFFF5F5F), Color(0xFFFF9F43), Color(0xFFFFD93D), Color(0xFF4CD964),
+    Color(0xFFFF5F5F), Color(0xFFFF9F43), Accent, Color(0xFF4CD964),
     Color(0xFF34C8C8), Color(0xFF4C8DFF), Color(0xFF9B59FF), Color(0xFFFF6BD6),
 )
 
@@ -338,16 +341,16 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
             ) {
                 BigButton(
                     if (isPlaying) "⏸ Stop" else "▶ Play",
-                    if (isPlaying) Color(0xFFF06D1A) else Color(0xFF14A04A),
+                    if (isPlaying) Color(0xFFC97B2D) else Color(0xFF2E9E5B),
                 ) { isPlaying = engine.togglePlay() }
-                BigButton("Auto-Beat", Color(0xFF7A2FF0)) {
+                BigButton("Auto-Beat", Color(0xFF5B54D6)) {
                     magicBeat(engine, micVersion)
                     autoBass(engine)
                     patternVersion++
                     bassVersion++
                     if (!isPlaying) isPlaying = engine.togglePlay()
                 }
-                BigButton("Clear", Color(0xFF3C4A66)) {
+                BigButton("Clear", Color(0xFF31353D)) {
                     for (t in 0 until AudioEngine.TRACKS) engine.pattern[t].fill(false)
                     patternVersion++
                 }
@@ -424,12 +427,12 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
                     .fillMaxWidth()
                     .padding(bottom = 8.dp),
             ) {
-                BigButton("Auto-Bass", Color(0xFF7A2FF0)) {
+                BigButton("Auto-Bass", Color(0xFF5B54D6)) {
                     autoBass(engine)
                     bassVersion++
                     if (!isPlaying) isPlaying = engine.togglePlay()
                 }
-                BigButton("Clear", Color(0xFF3C4A66)) {
+                BigButton("Clear", Color(0xFF31353D)) {
                     engine.bassline.fill(-1)
                     bassVersion++
                 }
@@ -454,7 +457,7 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
                                     .clip(RoundedCornerShape(5.dp))
                                     .background(
                                         when {
-                                            on -> Color(0xFF9B59FF)
+                                            on -> Accent
                                             s % 4 == 0 -> Color.White.copy(alpha = 0.16f)
                                             else -> Color.White.copy(alpha = 0.08f)
                                         }
@@ -631,7 +634,7 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
                         chordLabel,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFFFFD93D),
+                        color = Accent,
                     )
                 }
             }
@@ -687,8 +690,8 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
                     .padding(bottom = 8.dp),
             ) {
                 BigButton(
-                    if (importing) "Importing…" else "📂 Import Audio",
-                    Color(0xFF1A7FD4),
+                    if (importing) "Importing…" else "Import Audio",
+                    Color(0xFF2F6FED),
                 ) {
                     if (!importing) importLauncher.launch("audio/*")
                 }
@@ -736,7 +739,7 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
                                     .weight(1f)
                                     .aspectRatio(1f)
                                     .clip(RoundedCornerShape(10.dp))
-                                    .background(Brush.linearGradient(listOf(hue, hue.copy(alpha = 0.6f))))
+                                    .background(hue.copy(alpha = 0.85f))
                                     .pointerInput(i, sliceSrc, sliceCount) {
                                         detectTapGestures(
                                             onTap = { engine.play(slices[i]) },
@@ -801,9 +804,9 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
                     when {
                         vocalRecording -> "⏹ Stop  ${vocalElapsed}s"
                         vocalProcessing -> "Mastering…"
-                        else -> "🎙 Record Vocal"
+                        else -> "Record Vocal"
                     },
-                    if (vocalRecording) Color(0xFFAA0000) else Color(0xFF7A2FF0),
+                    if (vocalRecording) Color(0xFF8F2430) else Color(0xFF5B54D6),
                 ) {
                     if (!vocalProcessing) {
                         if (!vocalRecording) {
@@ -895,7 +898,7 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
             ) {
                 BigButton(
                     if (isRecording) "⏹ Stop & Save" else "● Record",
-                    if (isRecording) Color(0xFFAA0000) else Color(0xFFD1114A),
+                    if (isRecording) Color(0xFF8F2430) else Color(0xFFC43D4B),
                 ) { toggleSongRecording() }
             }
             for ((name, uri) in songs) {
@@ -909,7 +912,7 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
                         .padding(10.dp),
                 ) {
                     Text(name, fontSize = 15.sp, color = Color.White, modifier = Modifier.weight(1f))
-                    BigButton("▶ Play", Color(0xFF1A7FD4)) {
+                    BigButton("▶ Play", Color(0xFF2F6FED)) {
                         try {
                             MediaPlayer.create(context, uri)?.apply {
                                 setOnCompletionListener { it.release() }
@@ -950,16 +953,16 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color(0xFF16102E))
+                .background(Color(0xFF16181C))
                 .padding(horizontal = 14.dp, vertical = 8.dp),
         ) {
             BigButton(
                 if (isPlaying) "⏸" else "▶",
-                if (isPlaying) Color(0xFFF06D1A) else Color(0xFF14A04A),
+                if (isPlaying) Color(0xFFC97B2D) else Color(0xFF2E9E5B),
             ) { isPlaying = engine.togglePlay() }
             BigButton(
                 if (isRecording) "⏹" else "●",
-                if (isRecording) Color(0xFFAA0000) else Color(0xFFD1114A),
+                if (isRecording) Color(0xFF8F2430) else Color(0xFFC43D4B),
             ) { toggleSongRecording() }
             Column(Modifier.weight(1f)) {
                 Text(
@@ -969,7 +972,7 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
                     color = Color.White,
                 )
                 Text(
-                    if (isRecording) "● recording…" else "Pocket Studio",
+                    if (isRecording) "● recording…" else "POCKET STUDIO",
                     fontSize = 11.sp,
                     color = if (isRecording) Color(0xFFFF5F5F) else Color.White.copy(alpha = 0.6f),
                 )
@@ -980,23 +983,29 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color(0xFF120C26)),
+                .background(Color(0xFF101215)),
         ) {
-            val items = listOf("🥁" to "Beat", "🎹" to "Keys", "🎙" to "Record", "🎚" to "Mix")
+            val items = listOf("BEAT", "KEYS", "REC", "MIX")
             for ((i, item) in items.withIndex()) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
                         .weight(1f)
-                        .pointerInput(i) { detectTapGestures { tab = i } }
-                        .padding(vertical = 8.dp),
+                        .pointerInput(i) { detectTapGestures { tab = i } },
                 ) {
-                    Text(item.first, fontSize = 22.sp)
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .height(2.dp)
+                            .background(if (tab == i) Accent else Color.Transparent)
+                    )
                     Text(
-                        item.second,
-                        fontSize = 11.sp,
-                        fontWeight = if (tab == i) FontWeight.Bold else FontWeight.Normal,
-                        color = if (tab == i) Color(0xFFFFD93D) else Color.White.copy(alpha = 0.6f),
+                        item,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.2.sp,
+                        color = if (tab == i) Accent else TextDim,
+                        modifier = Modifier.padding(vertical = 12.dp),
                     )
                 }
             }
@@ -1030,10 +1039,11 @@ private fun Section(
                 .padding(bottom = if (expanded) 10.dp else 0.dp),
         ) {
             Text(
-                title,
-                fontSize = 18.sp,
+                title.uppercase(),
+                fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White,
+                letterSpacing = 1.4.sp,
+                color = TextDim,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.weight(1f),
             )
@@ -1056,8 +1066,8 @@ private fun SoundPad(emoji: String, label: String, color: Color, onHit: () -> Un
         modifier = Modifier
             .aspectRatio(1f)
             .scale(scale)
-            .clip(RoundedCornerShape(18.dp))
-            .background(Brush.linearGradient(listOf(color, color.copy(alpha = 0.65f))))
+            .clip(RoundedCornerShape(10.dp))
+            .background(PadBg)
             .pointerInput(Unit) {
                 detectTapGestures(onPress = {
                     pressed = true
@@ -1067,9 +1077,23 @@ private fun SoundPad(emoji: String, label: String, color: Color, onHit: () -> Un
                 })
             },
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(emoji, fontSize = 30.sp)
-            Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(7.dp),
+        ) {
+            Text(
+                label.uppercase(),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFFE6E7EA),
+                textAlign = TextAlign.Center,
+            )
+            Box(
+                Modifier
+                    .size(width = 24.dp, height = 3.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(color.copy(alpha = 0.9f))
+            )
         }
     }
 }
@@ -1080,10 +1104,7 @@ private fun Chip(text: String, selected: Boolean, onClick: () -> Unit) {
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(
-                if (selected) Color(0xFFFFD93D).copy(alpha = 0.9f)
-                else Color.White.copy(alpha = 0.12f)
-            )
+            .background(if (selected) Accent else PadBg)
             .pointerInput(text) { detectTapGestures { onClick() } }
             .padding(horizontal = 12.dp, vertical = 8.dp),
     ) {
@@ -1091,7 +1112,7 @@ private fun Chip(text: String, selected: Boolean, onClick: () -> Unit) {
             text,
             fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
-            color = if (selected) Color(0xFF1A0B3D) else Color.White,
+            color = if (selected) Color(0xFF14161A) else Color(0xFFC9CDD3),
         )
     }
 }
@@ -1104,8 +1125,8 @@ private fun BigButton(text: String, color: Color, onClick: () -> Unit) {
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .scale(scale)
-            .clip(RoundedCornerShape(16.dp))
-            .background(Brush.linearGradient(listOf(color, color.copy(alpha = 0.75f))))
+            .clip(RoundedCornerShape(10.dp))
+            .background(color)
             .pointerInput(Unit) {
                 detectTapGestures(onPress = {
                     pressed = true
@@ -1141,8 +1162,8 @@ private fun LabeledSlider(
             onValueChange = onChange,
             valueRange = range,
             colors = SliderDefaults.colors(
-                thumbColor = Color(0xFFFFD93D),
-                activeTrackColor = Color(0xFFFFD93D),
+                thumbColor = Accent,
+                activeTrackColor = Accent,
                 inactiveTrackColor = Color.White.copy(alpha = 0.25f),
             ),
             modifier = Modifier
@@ -1153,7 +1174,7 @@ private fun LabeledSlider(
             value,
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
-            color = Color(0xFFFFD93D),
+            color = Accent,
             textAlign = TextAlign.End,
             modifier = Modifier.width(44.dp),
         )
@@ -1310,8 +1331,8 @@ private fun PianoKey(emoji: String, color: Color, height: androidx.compose.ui.un
             .height(height)
             .fillMaxWidth()
             .scale(scale)
-            .clip(RoundedCornerShape(bottomStart = 14.dp, bottomEnd = 14.dp))
-            .background(Brush.verticalGradient(listOf(color, color.copy(alpha = 0.7f))))
+            .clip(RoundedCornerShape(bottomStart = 8.dp, bottomEnd = 8.dp))
+            .background(PadBg)
             .pointerInput(Unit) {
                 detectTapGestures(onPress = {
                     pressed = true
@@ -1322,7 +1343,18 @@ private fun PianoKey(emoji: String, color: Color, height: androidx.compose.ui.un
             }
             .padding(bottom = 8.dp),
     ) {
-        Text(emoji, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text(emoji, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFFE6E7EA))
+            Box(
+                Modifier
+                    .size(width = 18.dp, height = 3.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(color.copy(alpha = 0.9f))
+            )
+        }
     }
 }
 
@@ -1346,13 +1378,13 @@ private fun MicPad(
     ) { }
 
     val borderColor = when {
-        recordingNow -> Color(0xFFFF4D4D)
-        hasSample -> Color(0xFF2FD66C)
+        recordingNow -> Color(0xFFC43D4B)
+        hasSample -> Color(0xFF2E9E5B)
         else -> Color.White.copy(alpha = 0.4f)
     }
     val bg = when {
-        recordingNow -> Color(0xFFFF3C3C).copy(alpha = 0.25f)
-        hasSample -> Color(0xFF2FD66C).copy(alpha = 0.18f)
+        recordingNow -> Color(0xFFC43D4B).copy(alpha = 0.25f)
+        hasSample -> Color(0xFF2E9E5B).copy(alpha = 0.18f)
         else -> Color.White.copy(alpha = 0.06f)
     }
 
