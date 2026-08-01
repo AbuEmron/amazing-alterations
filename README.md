@@ -17,7 +17,7 @@ Two versions live in this repo:
 | **Step Sequencer** | 16 steps × 8 tracks × **4 chainable patterns (A–D)** with BPM, swing, per-step **accents** (long-press), and a metronome. **Chain** mode plays patterns in sequence — song arrangement on one screen. |
 | **Keys** | Pentatonic quick keys or a **full 88-key piano** (A0–C8, real Salamander samples across the range), playable as grand piano, glockenspiel, marimba, synth, or **808-style sub bass** — with **Smart Chords** auto-harmonization. |
 | **Bass Station** | Six bass instruments (808, Sub, Reese, Square, Pluck, Growl) with a 16-step pitch sequencer per pattern, mono note choking, and **Auto-Bass** — one tap writes a bassline locked to your kick. |
-| **Slicer** | Chop any recorded sample into 4/8/16 playable slices and perform them like an MPC. |
+| **Slicer** | **Import any audio file** (MP3, WAV, M4A...) or use a mic recording, chop it into 4/8/16 playable slices, perform them like an MPC, and long-press slices into S1/S2 to sequence them into the beat. |
 | **Mixer & FX** | Per-track level and mute, master **reverb**, and **tempo-synced delay** — all feeding the auto-master chain. |
 | **Sampler** | Hold-to-record mic sampler; two sample slots feed the sequencer as extra tracks. |
 | **Voice Booth** | Record vocals up to 5 minutes; every take is **auto-mastered** (noise gate, 80 Hz cleanup, compression, presence EQ, loudness), saved as WAV, and can be sent to the Sampler/Slicer. |

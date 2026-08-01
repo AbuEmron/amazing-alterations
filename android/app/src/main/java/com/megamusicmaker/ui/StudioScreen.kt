@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.megamusicmaker.audio.AudioEngine
+import com.megamusicmaker.audio.AudioImporter
 import com.megamusicmaker.audio.ChordBrain
 import com.megamusicmaker.audio.MicSampler
 import com.megamusicmaker.audio.ProjectStore
@@ -192,6 +193,27 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
         while (vocalRecording) {
             delay(1000)
             vocalElapsed++
+        }
+    }
+
+    // File import lives at screen level so switching tabs can't drop the result
+    var importing by remember { mutableStateOf(false) }
+    val importLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) {
+            importing = true
+            scope.launch(Dispatchers.IO) {
+                val s = AudioImporter.decode(context, uri, 60.0)
+                withContext(Dispatchers.Main) {
+                    importing = false
+                    if (s != null) {
+                        engine.micSamples[sliceSrc] = s
+                        engine.play(s.copyOfRange(0, minOf(s.size, Synth.SR)))
+                        micVersion++
+                    }
+                }
+            }
         }
     }
 
@@ -659,6 +681,19 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
 
         Section("Slicer", visible = tab == 2) {
             Row(
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp),
+            ) {
+                BigButton(
+                    if (importing) "Importing…" else "📂 Import Audio",
+                    Color(0xFF1A7FD4),
+                ) {
+                    if (!importing) importLauncher.launch("audio/*")
+                }
+            }
+            Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -675,7 +710,8 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
             val srcSample = engine.micSamples[sliceSrc]
             if (srcSample == null) {
                 Text(
-                    "Record something into S${sliceSrc + 1} in the Sampler below, then chop it here into $sliceCount playable slices.",
+                    "Import a song or sound file (MP3, WAV, M4A...) into S${sliceSrc + 1} with the button above — " +
+                        "or record into it from the mic in the Sampler below. Then chop it into $sliceCount playable slices.",
                     fontSize = 12.sp,
                     color = Color.White.copy(alpha = 0.7f),
                     textAlign = TextAlign.Center,
@@ -702,10 +738,17 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
                                     .clip(RoundedCornerShape(10.dp))
                                     .background(Brush.linearGradient(listOf(hue, hue.copy(alpha = 0.6f))))
                                     .pointerInput(i, sliceSrc, sliceCount) {
-                                        detectTapGestures(onPress = {
-                                            engine.play(slices[i])
-                                            tryAwaitRelease()
-                                        })
+                                        detectTapGestures(
+                                            onTap = { engine.play(slices[i]) },
+                                            onLongPress = {
+                                                // send this slice to the next slot so it can
+                                                // be sequenced (S1/S2) or re-sliced
+                                                val target = (sliceSrc + 1) % AudioEngine.MIC_SLOTS
+                                                engine.micSamples[target] = slices[i].copyOf()
+                                                engine.play(slices[i])
+                                                micVersion++
+                                            },
+                                        )
                                     },
                             ) {
                                 Text(
@@ -720,7 +763,8 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
                     Spacer(Modifier.height(6.dp))
                 }
                 Text(
-                    "Tap slices to perform — resample your own sounds into new rhythms.",
+                    "Tap a slice to play it. Long-press a slice to send it to S${(sliceSrc + 1) % AudioEngine.MIC_SLOTS + 1} — " +
+                        "slices in S1/S2 can be placed in the Step Sequencer to mix them into your beat.",
                     fontSize = 12.sp,
                     color = Color.White.copy(alpha = 0.7f),
                     textAlign = TextAlign.Center,

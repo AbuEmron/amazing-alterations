@@ -17,7 +17,7 @@ A full music production studio with a one-screen interface, running **100% offli
 - **Auto-Beat** generator: one tap always produces a musical groove.
 - **Automatic mastering**: every buffer passes a rumble filter, program compressor, makeup gain, and soft limiter — beats come out loud, glued, and clip-free, live and in recordings.
 - **Full 88-key piano** (A0–C8) built on 16 real Salamander anchor samples with real-time varispeed pitching; plus an 808-style **sub bass** bank.
-- **Sample slicer**: chop mic recordings into 4/8/16 performable slices.
+- **Sample slicer + file import**: bring in any audio file (decoded on-device with MediaCodec — MP3, WAV, M4A, OGG, up to 60 s) or a mic recording, chop into 4/8/16 performable slices, and send slices to sampler slots for sequencing.
 - **Voice Booth**: long-form vocal recording with automatic vocal mastering (gate, high-pass, 4:1 compression, presence EQ, loudness normalization) applied offline on stop; takes save as WAV and can feed the sampler/slicer.
 - **Pentatonic keys**: every melody stays in key.
 - **Song mode**: four chainable patterns (A-D) with per-step accents and a metronome.
