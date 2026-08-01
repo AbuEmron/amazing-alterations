@@ -16,6 +16,7 @@ A full music production studio with a one-screen interface, running **100% offli
 - **What-you-hear-is-what-you-get recording**: the song recorder taps the master mix bus and writes standard 16-bit WAV files.
 - **Auto-Beat** generator: one tap always produces a musical groove.
 - **Automatic mastering**: every buffer passes a rumble filter, program compressor, makeup gain, and soft limiter — beats come out loud, glued, and clip-free, live and in recordings.
+- **Boom Bap kit (default)**: dusty lo-fi-processed 808 one-shots, a real acoustic concert snare layered with the 808 snare, rimshot, conga, open hat, and a synthesized vinyl-crackle bed.
 - **Full 88-key piano** (A0–C8) built on 16 real Salamander anchor samples with real-time varispeed pitching; plus an 808-style **sub bass** bank.
 - **Sample slicer + file import**: bring in any audio file (decoded on-device with MediaCodec — MP3, WAV, M4A, OGG, up to 60 s) or a mic recording, chop into 4/8/16 performable slices, and send slices to sampler slots for sequencing.
 - **Voice Booth**: long-form vocal recording with automatic vocal mastering (gate, high-pass, 4:1 compression, presence EQ, loudness normalization) applied offline on stop; takes save as WAV and can feed the sampler/slicer.

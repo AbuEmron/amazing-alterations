@@ -84,18 +84,14 @@ private val TextDim = Color(0xFF9AA0A9)
 private data class PadDef(val emoji: String, val label: String, val color: Color, val sample: FloatArray)
 
 private val basePads = listOf(
-    PadDef("🥁", "Kick", Color(0xFFE74C3C), Synth.kick),
-    PadDef("🪘", "Snare", Color(0xFFE67E22), Synth.snare),
-    PadDef("🎩", "Hi-Hat", Color(0xFFF1C40F), Synth.hat),
-    PadDef("👏", "Clap", Color(0xFF2ECC71), Synth.clap),
-    PadDef("🛢", "Tom", Color(0xFF1ABC9C), Synth.tom),
-    PadDef("🔔", "Bell", Color(0xFF3498DB), Synth.bell),
-    PadDef("⚡", "Zap", Color(0xFF9B59B6), Synth.zap),
-    PadDef("〰", "Boing", Color(0xFFE84393), Synth.boing),
-    PadDef("🫧", "Pop", Color(0xFFFD79A8), Synth.pop),
-    PadDef("📯", "Whistle", Color(0xFF00B894), Synth.whistle),
-    PadDef("🎚", "Shaker", Color(0xFFFDCB6E), Synth.shaker),
-    PadDef("🤖", "Robot", Color(0xFF636E72), Synth.robot),
+    PadDef("", "Kick", Color(0xFFE74C3C), Synth.kick),
+    PadDef("", "Snare", Color(0xFFE67E22), Synth.snare),
+    PadDef("", "Hi-Hat", Color(0xFFF1C40F), Synth.hat),
+    PadDef("", "Clap", Color(0xFF2ECC71), Synth.clap),
+    PadDef("", "Tom", Color(0xFF1ABC9C), Synth.tom),
+    PadDef("", "Bell", Color(0xFF3498DB), Synth.bell),
+    PadDef("", "Shaker", Color(0xFFFDCB6E), Synth.shaker),
+    PadDef("", "Sub", Color(0xFF9B59B6), Synth.subAnchors[1].second),
 )
 
 private val trackLabels = listOf(
@@ -319,7 +315,7 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
                     }
                 }
             }
-            for (row in 0 until 3) {
+            for (row in 0 until 2) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     for (col in 0 until 4) {
                         val pad = pads[row * 4 + col]
@@ -330,7 +326,7 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
                         }
                     }
                 }
-                if (row < 2) Spacer(Modifier.height(8.dp))
+                if (row < 1) Spacer(Modifier.height(8.dp))
             }
         }
 

@@ -66,6 +66,19 @@ class SampleLibrary(private val assets: AssetManager) {
         )
         kits = listOf(
             DrumKit(
+                "boombap", "Boom Bap",
+                arrayOf(
+                    wav("samples/boombap/kick.wav"),
+                    wav("samples/boombap/snare.wav"),
+                    wav("samples/boombap/hat.wav"),
+                    wav("samples/boombap/clap.wav"),
+                    wav("samples/boombap/conga.wav"),
+                    wav("samples/boombap/rim.wav"),
+                ),
+                wav("samples/boombap/hatopen.wav"), "OH", "Open Hat",
+                wav("samples/boombap/crackle.wav"), "VN", "Vinyl",
+            ),
+            DrumKit(
                 "tr808", "808",
                 arrayOf(
                     wav("samples/tr808/kick.wav"),

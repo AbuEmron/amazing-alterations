@@ -13,7 +13,7 @@ Two versions live in this repo:
 
 | Studio section | What it does |
 |---|---|
-| **Pads** | 12 performance pads — kick, snare, hats, FX. Switch between the synth kit, a real TR-808, and orchestral percussion. |
+| **Pads** | 8 performance pads — kick, snare, hats, clap, percussion. Kits: **Boom Bap** (default — dusty processed 808s + real acoustic snare, rimshot, vinyl crackle), real TR-808, orchestral, synth. |
 | **Step Sequencer** | 16 steps × 8 tracks × **4 chainable patterns (A–D)** with BPM, swing, per-step **accents** (long-press), and a metronome. **Chain** mode plays patterns in sequence — song arrangement on one screen. |
 | **Keys** | Pentatonic quick keys or a **full 88-key piano** (A0–C8, real Salamander samples across the range), playable as grand piano, glockenspiel, marimba, synth, or **808-style sub bass** — with **Smart Chords** auto-harmonization. |
 | **Bass Station** | Six bass instruments (808, Sub, Reese, Square, Pluck, Growl) with a 16-step pitch sequencer per pattern, mono note choking, and **Auto-Bass** — one tap writes a bassline locked to your kick. |

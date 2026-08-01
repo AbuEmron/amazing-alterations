@@ -14,7 +14,7 @@ import java.io.File
 object ProjectStore {
 
     /** UI selections mirrored here so they persist alongside engine state. */
-    @Volatile var kitId = "synth"
+    @Volatile var kitId = "boombap"
     @Volatile var melodicId = "piano"
 
     private fun packPattern(p: Array<BooleanArray>): JSONArray {
@@ -93,7 +93,7 @@ object ProjectStore {
                 engine.reverbMix = o.optDouble("reverb", 0.0).toFloat()
                 engine.delayMix = o.optDouble("delay", 0.0).toFloat()
                 engine.bassEnhance = o.optDouble("knock", 0.45).toFloat()
-                kitId = o.optString("kit", "synth")
+                kitId = o.optString("kit", "boombap")
                 melodicId = o.optString("melodic", "piano")
                 o.optJSONArray("gains")?.let { g ->
                     for (i in 0 until minOf(g.length(), engine.trackGain.size)) {
