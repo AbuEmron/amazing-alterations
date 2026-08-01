@@ -175,6 +175,7 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
     var mixerVersion by remember { mutableStateOf(0) }
     var bassVersion by remember { mutableStateOf(0) }
     var bassBankSel by remember { mutableStateOf(engine.bassBank) }
+    var tab by remember { mutableStateOf(0) }
 
     // Voice Booth state lives at screen level so collapsing the section can
     // never interrupt an active recording or lose takes
@@ -191,6 +192,24 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
         while (vocalRecording) {
             delay(1000)
             vocalElapsed++
+        }
+    }
+
+    // Song recording is reachable from the transport bar on every tab
+    val toggleSongRecording: () -> Unit = {
+        if (!isRecording) {
+            engine.startRecording()
+            isRecording = true
+        } else {
+            isRecording = false
+            val data = engine.stopRecording()
+            val name = "Take ${songs.size + 1}"
+            scope.launch(Dispatchers.IO) {
+                val uri = WavWriter.save(context, "take-${System.currentTimeMillis()}.wav", data)
+                if (uri != null) {
+                    withContext(Dispatchers.Main) { songs.add(0, name to uri) }
+                }
+            }
         }
     }
     var magicChords by remember { mutableStateOf(false) }
@@ -245,28 +264,17 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
         modifier = Modifier
             .fillMaxSize()
             .background(Brush.verticalGradient(listOf(BgTop, BgMid, BgBot)))
-            .safeDrawingPadding()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 12.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+            .safeDrawingPadding(),
     ) {
-        Text(
-            "Pocket Studio",
-            fontSize = 26.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color(0xFFFFD93D),
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Text(
-            "Tap · Loop · Record — fully offline",
-            fontSize = 13.sp,
-            color = Color.White.copy(alpha = 0.75f),
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth(),
-        )
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 12.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
 
-        Section("Pads") {
+        Section("Pads", visible = tab == 0) {
             if (libLoaded && library.kits.isNotEmpty()) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
@@ -301,7 +309,7 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
             }
         }
 
-        Section("Step Sequencer") {
+        Section("Step Sequencer", visible = tab == 0) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
                 modifier = Modifier.fillMaxWidth(),
@@ -369,7 +377,7 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
             )
         }
 
-        Section("Bass Station") {
+        Section("Bass Station", visible = tab == 1) {
             @Suppress("UNUSED_EXPRESSION") bassVersion
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -473,7 +481,7 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
             )
         }
 
-        Section("Mixer & FX", initiallyExpanded = false) {
+        Section("Mixer & FX", visible = tab == 3) {
             @Suppress("UNUSED_EXPRESSION") mixerVersion
             for (t in 0 until AudioEngine.TRACKS) {
                 Row(
@@ -540,7 +548,7 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
             )
         }
 
-        Section("Keys") {
+        Section("Keys", visible = tab == 1) {
             // Route a MIDI note through the right bank, with optional Smart Chords
             val playMidi: (Int) -> Unit = { midi ->
                 when {
@@ -649,7 +657,7 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
             }
         }
 
-        Section("Slicer", initiallyExpanded = false) {
+        Section("Slicer", visible = tab == 2) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
                 modifier = Modifier
@@ -721,7 +729,7 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
             }
         }
 
-        Section("Sampler") {
+        Section("Sampler", visible = tab == 2) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 for (i in 0 until AudioEngine.MIC_SLOTS) {
                     Box(Modifier.weight(1f)) {
@@ -740,7 +748,7 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
             )
         }
 
-        Section("Voice Booth", initiallyExpanded = false) {
+        Section("Voice Booth", visible = tab == 2) {
             Row(
                 horizontalArrangement = Arrangement.Center,
                 modifier = Modifier.fillMaxWidth(),
@@ -836,7 +844,7 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
             )
         }
 
-        Section("Record") {
+        Section("Record", visible = tab == 2) {
             Row(
                 horizontalArrangement = Arrangement.Center,
                 modifier = Modifier.fillMaxWidth(),
@@ -844,24 +852,7 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
                 BigButton(
                     if (isRecording) "⏹ Stop & Save" else "● Record",
                     if (isRecording) Color(0xFFAA0000) else Color(0xFFD1114A),
-                ) {
-                    if (!isRecording) {
-                        engine.startRecording()
-                        isRecording = true
-                    } else {
-                        isRecording = false
-                        val data = engine.stopRecording()
-                        val name = "Take ${songs.size + 1}"
-                        scope.launch(Dispatchers.IO) {
-                            val uri = WavWriter.save(
-                                context, "my-song-${System.currentTimeMillis()}.wav", data
-                            )
-                            if (uri != null) {
-                                withContext(Dispatchers.Main) { songs.add(0, name to uri) }
-                            }
-                        }
-                    }
-                }
+                ) { toggleSongRecording() }
             }
             for ((name, uri) in songs) {
                 Spacer(Modifier.height(8.dp))
@@ -898,13 +889,74 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
             }
         }
 
-        Text(
-            "100% offline · no internet permission · your audio stays yours",
-            fontSize = 12.sp,
-            color = Color.White.copy(alpha = 0.55f),
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth(),
-        )
+        if (tab == 3) {
+            Text(
+                "100% offline · no internet permission · your audio stays yours",
+                fontSize = 12.sp,
+                color = Color.White.copy(alpha = 0.55f),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        }
+
+        // ---- transport bar: play / record / tempo, visible on every tab ----
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xFF16102E))
+                .padding(horizontal = 14.dp, vertical = 8.dp),
+        ) {
+            BigButton(
+                if (isPlaying) "⏸" else "▶",
+                if (isPlaying) Color(0xFFF06D1A) else Color(0xFF14A04A),
+            ) { isPlaying = engine.togglePlay() }
+            BigButton(
+                if (isRecording) "⏹" else "●",
+                if (isRecording) Color(0xFFAA0000) else Color(0xFFD1114A),
+            ) { toggleSongRecording() }
+            Column(Modifier.weight(1f)) {
+                Text(
+                    "${bpm.toInt()} BPM · Pattern ${('A' + patternSel)}",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                )
+                Text(
+                    if (isRecording) "● recording…" else "Pocket Studio",
+                    fontSize = 11.sp,
+                    color = if (isRecording) Color(0xFFFF5F5F) else Color.White.copy(alpha = 0.6f),
+                )
+            }
+        }
+
+        // ---- bottom navigation ----
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xFF120C26)),
+        ) {
+            val items = listOf("🥁" to "Beat", "🎹" to "Keys", "🎙" to "Record", "🎚" to "Mix")
+            for ((i, item) in items.withIndex()) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .weight(1f)
+                        .pointerInput(i) { detectTapGestures { tab = i } }
+                        .padding(vertical = 8.dp),
+                ) {
+                    Text(item.first, fontSize = 22.sp)
+                    Text(
+                        item.second,
+                        fontSize = 11.sp,
+                        fontWeight = if (tab == i) FontWeight.Bold else FontWeight.Normal,
+                        color = if (tab == i) Color(0xFFFFD93D) else Color.White.copy(alpha = 0.6f),
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -914,8 +966,10 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
 private fun Section(
     title: String,
     initiallyExpanded: Boolean = true,
+    visible: Boolean = true,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    if (!visible) return
     var expanded by remember { mutableStateOf(initiallyExpanded) }
     Column(
         Modifier
