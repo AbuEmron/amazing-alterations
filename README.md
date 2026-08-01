@@ -18,6 +18,7 @@ Two versions live in this repo:
 | **Keys** | Pentatonic quick keys or a **full 88-key piano** (A0–C8, real Salamander samples across the range), playable as grand piano, glockenspiel, marimba, synth, or **808-style sub bass** — with **Smart Chords** auto-harmonization. |
 | **Slicer** | Chop any recorded sample into 4/8/16 playable slices and perform them like an MPC. |
 | **Sampler** | Hold-to-record mic sampler; two sample slots feed the sequencer as extra tracks. |
+| **Voice Booth** | Record vocals up to 5 minutes; every take is **auto-mastered** (noise gate, 80 Hz cleanup, compression, presence EQ, loudness), saved as WAV, and can be sent to the Sampler/Slicer. |
 | **Record** | One-button recording of the **auto-mastered** master bus (rumble filter → program compressor → makeup gain → soft limiter) to WAV. |
 
 ## The Android app goes further

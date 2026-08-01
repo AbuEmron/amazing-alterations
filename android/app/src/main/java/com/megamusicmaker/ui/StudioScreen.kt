@@ -59,8 +59,10 @@ import com.megamusicmaker.audio.ChordBrain
 import com.megamusicmaker.audio.MicSampler
 import com.megamusicmaker.audio.SampleLibrary
 import com.megamusicmaker.audio.Synth
+import com.megamusicmaker.audio.VocalMaster
 import com.megamusicmaker.audio.WavWriter
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.pow
@@ -463,6 +465,117 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
                 "Hold a pad to record from the mic, release to stop, tap to play. S1 & S2 feed the sequencer.",
                 fontSize = 12.sp,
                 color = Color.White.copy(alpha = 0.75f),
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+            )
+        }
+
+        Section("Voice Booth") {
+            val vocalSampler = remember { MicSampler() }
+            var vocalRecording by remember { mutableStateOf(false) }
+            var vocalProcessing by remember { mutableStateOf(false) }
+            var vocalElapsed by remember { mutableStateOf(0) }
+            val vocalTakes = remember { mutableStateListOf<Triple<String, Uri, FloatArray>>() }
+            val vocalPerm = rememberLauncherForActivityResult(
+                ActivityResultContracts.RequestPermission()
+            ) { }
+            LaunchedEffect(vocalRecording) {
+                vocalElapsed = 0
+                while (vocalRecording) {
+                    delay(1000)
+                    vocalElapsed++
+                }
+            }
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                BigButton(
+                    when {
+                        vocalRecording -> "⏹ Stop  ${vocalElapsed}s"
+                        vocalProcessing -> "Mastering…"
+                        else -> "🎙 Record Vocal"
+                    },
+                    if (vocalRecording) Color(0xFFAA0000) else Color(0xFF7A2FF0),
+                ) {
+                    if (!vocalProcessing) {
+                        if (!vocalRecording) {
+                            val granted = ContextCompat.checkSelfPermission(
+                                context, Manifest.permission.RECORD_AUDIO
+                            ) == PackageManager.PERMISSION_GRANTED
+                            if (!granted) {
+                                vocalPerm.launch(Manifest.permission.RECORD_AUDIO)
+                            } else if (vocalSampler.start()) {
+                                vocalRecording = true
+                            }
+                        } else {
+                            vocalRecording = false
+                            vocalProcessing = true
+                            scope.launch(Dispatchers.IO) {
+                                val raw = vocalSampler.stop(300.0)
+                                val mastered = raw?.let { VocalMaster.process(it) }
+                                val ok = mastered != null && mastered.size > Synth.SR / 10
+                                val uri = if (ok) {
+                                    WavWriter.save(
+                                        context,
+                                        "vocal-${System.currentTimeMillis()}.wav",
+                                        mastered!!,
+                                    )
+                                } else null
+                                withContext(Dispatchers.Main) {
+                                    vocalProcessing = false
+                                    if (ok && uri != null) {
+                                        vocalTakes.add(
+                                            0,
+                                            Triple("Vocal ${vocalTakes.size + 1}", uri, mastered!!),
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            for ((name, uri, sample) in vocalTakes) {
+                Spacer(Modifier.height(8.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Color.Black.copy(alpha = 0.25f))
+                        .padding(10.dp),
+                ) {
+                    Text(
+                        "$name · ${sample.size / Synth.SR}s",
+                        fontSize = 14.sp,
+                        color = Color.White,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Chip("▶ Play", false) {
+                        try {
+                            MediaPlayer.create(context, uri)?.apply {
+                                setOnCompletionListener { it.release() }
+                                start()
+                            }
+                        } catch (_: Exception) {
+                        }
+                    }
+                    Chip("→ S4", false) {
+                        engine.micSamples[3] = sample
+                        micVersion++
+                    }
+                }
+            }
+            Text(
+                "Every take is auto-mastered on stop: noise gate, 80 Hz cleanup, compression, presence EQ, loudness. " +
+                    "Saved as WAV to your Music folder. '→ S4' sends it to the Sampler for slicing. " +
+                    "Use headphones to record over a playing beat.",
+                fontSize = 12.sp,
+                color = Color.White.copy(alpha = 0.7f),
                 textAlign = TextAlign.Center,
                 modifier = Modifier
                     .fillMaxWidth()
