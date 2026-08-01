@@ -21,7 +21,8 @@ A full music production studio with a one-screen interface, running **100% offli
 - **Voice Booth**: long-form vocal recording with automatic vocal mastering (gate, high-pass, 4:1 compression, presence EQ, loudness normalization) applied offline on stop; takes save as WAV and can feed the sampler/slicer.
 - **Pentatonic keys**: every melody stays in key.
 - **Song mode**: four chainable patterns (A-D) with per-step accents and a metronome.
-- **Mixer & FX**: per-track gain/mute, Schroeder reverb, tempo-synced dotted-8th delay.
+- **Mixer & FX**: per-track gain/mute, Schroeder reverb, tempo-synced dotted-8th delay, and a Knock sub-harmonic enhancer so 808s carry on phone speakers.
+- **Bass Station**: six synthesized bass instruments (808 sub, pure sub, Reese, square, Karplus-Strong pluck, FM growl) on a per-pattern 16-step pitch sequencer with monophonic choking; Auto-Bass generates a line from the kick pattern.
 - **Project persistence**: full session auto-saves on background and restores on launch; WAV export uses TPDF dither like professional DAW renders.
 
 ## 🛠 Getting the APK

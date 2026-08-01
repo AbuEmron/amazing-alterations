@@ -248,4 +248,109 @@ object Synth {
         }
         normalize(out, 0.8f)
     }
+
+    /* ---------- Bass Station: six bass instruments, all pure synthesis ---------- */
+
+    /** Clean sine sub with a soft attack - the foundation. */
+    private fun pureSub(f: Double): FloatArray {
+        val dur = 1.5
+        val out = buf(dur)
+        var phase = 0.0
+        for (i in out.indices) {
+            val t = i.toDouble() / SR
+            phase += 2 * PI * f / SR
+            val attack = min(t / 0.005, 1.0)
+            out[i] = (sin(phase) * attack * expEnv(t, dur, 2.5)).toFloat()
+        }
+        return normalize(out, 0.85f)
+    }
+
+    /** Reese: two detuned saws + sub sine, low-passed dark. DnB staple. */
+    private fun reese(f: Double): FloatArray {
+        val dur = 1.6
+        val out = buf(dur)
+        var p1 = 0.0; var p2 = 0.0; var ps = 0.0
+        var lp = 0.0
+        val lpCoef = 2 * PI * 500.0 / SR
+        for (i in out.indices) {
+            val t = i.toDouble() / SR
+            p1 += 2 * PI * f * 1.006 / SR
+            p2 += 2 * PI * f * 0.994 / SR
+            ps += 2 * PI * f / SR
+            val raw = saw(p1) * 0.5 + saw(p2) * 0.5 + sin(ps) * 0.4
+            lp += lpCoef * (raw - lp)
+            val attack = min(t / 0.01, 1.0)
+            out[i] = (lp * attack * expEnv(t, dur, 2.0)).toFloat()
+        }
+        return normalize(out, 0.8f)
+    }
+
+    /** Square bass with a closing filter sweep - funk machine. */
+    private fun squareBass(f: Double): FloatArray {
+        val dur = 1.2
+        val out = buf(dur)
+        var phase = 0.0
+        var lp = 0.0
+        for (i in out.indices) {
+            val t = i.toDouble() / SR
+            phase += 2 * PI * f / SR
+            val cutoff = 250.0 + 1750.0 * exp(-t / 0.15)
+            val lpCoef = 2 * PI * cutoff / SR
+            lp += lpCoef * (square(phase) - lp)
+            out[i] = (lp * expEnv(t, dur, 4.0)).toFloat()
+        }
+        return normalize(out, 0.85f)
+    }
+
+    /** Karplus-Strong plucked string - fingered electric bass feel. */
+    private fun pluckBass(f: Double): FloatArray {
+        val dur = 1.5
+        val out = buf(dur)
+        val n = (SR / f).toInt().coerceAtLeast(2)
+        val delay = DoubleArray(n)
+        for (i in delay.indices) delay[i] = rnd.nextDouble() * 2 - 1
+        var idx = 0
+        var lp = 0.0
+        val lpCoef = 2 * PI * 1500.0 / SR
+        for (i in out.indices) {
+            val cur = delay[idx]
+            val next = delay[(idx + 1) % n]
+            delay[idx] = 0.996 * 0.5 * (cur + next)
+            idx = (idx + 1) % n
+            lp += lpCoef * (cur - lp)
+            out[i] = lp.toFloat()
+        }
+        return normalize(out, 0.85f)
+    }
+
+    /** FM growl: modulation index sweep + saturation - modern bass music. */
+    private fun growlBass(f: Double): FloatArray {
+        val dur = 1.4
+        val out = buf(dur)
+        var cp = 0.0; var mp = 0.0
+        for (i in out.indices) {
+            val t = i.toDouble() / SR
+            cp += 2 * PI * f / SR
+            mp += 2 * PI * 2 * f / SR
+            val index = 0.3 + 3.7 * exp(-t / 0.25)
+            val v = kotlin.math.tanh(1.3 * sin(cp + index * sin(mp)))
+            out[i] = (v * expEnv(t, dur, 3.0)).toFloat()
+        }
+        return normalize(out, 0.8f)
+    }
+
+    private val bassFreqs = listOf(24 to 32.70, 36 to 65.41, 48 to 130.81)
+
+    private fun bank(gen: (Double) -> FloatArray): List<Pair<Int, FloatArray>> =
+        bassFreqs.map { (midi, f) -> midi to gen(f) }
+
+    /** All bass instruments: id -> (label, anchors at C1/C2/C3 for rate-pitching). */
+    val bassBanks: LinkedHashMap<String, Pair<String, List<Pair<Int, FloatArray>>>> = linkedMapOf(
+        "808" to ("808" to subAnchors),
+        "sub" to ("Sub" to bank(::pureSub)),
+        "reese" to ("Reese" to bank(::reese)),
+        "square" to ("Square" to bank(::squareBass)),
+        "pluck" to ("Pluck" to bank(::pluckBass)),
+        "growl" to ("Growl" to bank(::growlBass)),
+    )
 }

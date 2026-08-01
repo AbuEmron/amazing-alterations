@@ -130,6 +130,30 @@ private fun isBlackKey(midi: Int) = when (midi % 12) {
 /** Pitch class -> C-major scale degree, or -1 for non-diatonic notes. */
 private val pitchClassDegree = intArrayOf(0, -1, 1, -1, 2, 3, -1, 4, -1, 5, -1, 6)
 
+/** Bass Station grid rows, top to bottom (C pentatonic, E3 down to C2). */
+private val bassRowMidis = intArrayOf(52, 50, 48, 45, 43, 40, 38, 36)
+private val bassRowLabels = arrayOf("E3", "D3", "C3", "A2", "G2", "E2", "D2", "C2")
+
+/** Writes a bassline that locks onto the current pattern's kick drum. */
+private fun autoBass(engine: AudioEngine) {
+    val kick = engine.pattern[0]
+    val bl = engine.bassline
+    bl.fill(-1)
+    val roots = intArrayOf(36, 36, 36, 43, 45)          // C-heavy, G/A color
+    val passing = intArrayOf(48, 40, 38, 43)            // C3 E2 D2 G2
+    for (s in 0 until AudioEngine.STEPS) {
+        if (kick[s]) {
+            bl[s] = if (s == 0) 36 else roots[Random.nextInt(roots.size)]
+        } else if (s % 4 == 2 && Random.nextDouble() < 0.35) {
+            bl[s] = passing[Random.nextInt(passing.size)]
+        }
+    }
+    if (bl.all { it == -1 }) {
+        bl[0] = 36
+        bl[8] = 36
+    }
+}
+
 /* ---------- main screen ---------- */
 
 @Composable
@@ -149,6 +173,8 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
     var chainOn by remember { mutableStateOf(engine.chain) }
     var clickOn by remember { mutableStateOf(engine.metronome) }
     var mixerVersion by remember { mutableStateOf(0) }
+    var bassVersion by remember { mutableStateOf(0) }
+    var bassBankSel by remember { mutableStateOf(engine.bassBank) }
 
     // Voice Booth state lives at screen level so collapsing the section can
     // never interrupt an active recording or lose takes
@@ -182,6 +208,7 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
         if (engine.chain && patternSel != livePattern) {
             patternSel = livePattern
             patternVersion++
+            bassVersion++
         }
     }
     // Restore the saved kit selection once samples finish loading
@@ -285,7 +312,9 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
                 ) { isPlaying = engine.togglePlay() }
                 BigButton("Auto-Beat", Color(0xFF7A2FF0)) {
                     magicBeat(engine, micVersion)
+                    autoBass(engine)
                     patternVersion++
+                    bassVersion++
                     if (!isPlaying) isPlaying = engine.togglePlay()
                 }
                 BigButton("Clear", Color(0xFF3C4A66)) {
@@ -305,6 +334,7 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
                         engine.currentPattern = p
                         patternSel = p
                         patternVersion++
+                        bassVersion++
                     }
                 }
                 Chip("Chain", chainOn) {
@@ -330,6 +360,110 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
                 "Tap a step to place it, long-press an active step to accent it. " +
                     "A-D are patterns; Chain plays them in sequence as a song. " +
                     "S1 & S2 rows play your recorded samples.",
+                fontSize = 12.sp,
+                color = Color.White.copy(alpha = 0.7f),
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 6.dp),
+            )
+        }
+
+        Section("Bass Station") {
+            @Suppress("UNUSED_EXPRESSION") bassVersion
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(bottom = 8.dp),
+            ) {
+                for ((id, bank) in Synth.bassBanks) {
+                    Chip(bank.first, bassBankSel == id) {
+                        bassBankSel = id
+                        engine.bassBank = id
+                        SampleLibrary.noteFor(bank.second, 36)?.let { (s, r) ->
+                            engine.play(s, engine.bassGain, 0, r)
+                        }
+                    }
+                }
+            }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp),
+            ) {
+                BigButton("Auto-Bass", Color(0xFF7A2FF0)) {
+                    autoBass(engine)
+                    bassVersion++
+                    if (!isPlaying) isPlaying = engine.togglePlay()
+                }
+                BigButton("Clear", Color(0xFF3C4A66)) {
+                    engine.bassline.fill(-1)
+                    bassVersion++
+                }
+            }
+            Column(Modifier.horizontalScroll(rememberScrollState())) {
+                for ((row, midi) in bassRowMidis.withIndex()) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            bassRowLabels[row],
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White.copy(alpha = 0.8f),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.width(34.dp),
+                        )
+                        for (s in 0 until AudioEngine.STEPS) {
+                            val on = engine.bassline[s] == midi
+                            Box(
+                                Modifier
+                                    .padding(1.dp)
+                                    .size(width = 34.dp, height = 22.dp)
+                                    .clip(RoundedCornerShape(5.dp))
+                                    .background(
+                                        when {
+                                            on -> Color(0xFF9B59FF)
+                                            s % 4 == 0 -> Color.White.copy(alpha = 0.16f)
+                                            else -> Color.White.copy(alpha = 0.08f)
+                                        }
+                                    )
+                                    .then(
+                                        if (currentStep == s) {
+                                            Modifier.border(1.5.dp, Color.White, RoundedCornerShape(5.dp))
+                                        } else Modifier
+                                    )
+                                    .pointerInput(midi, s) {
+                                        detectTapGestures {
+                                            if (engine.bassline[s] == midi) {
+                                                engine.bassline[s] = -1
+                                            } else {
+                                                engine.bassline[s] = midi
+                                                val anchors =
+                                                    Synth.bassBanks[engine.bassBank]?.second
+                                                        ?: Synth.subAnchors
+                                                SampleLibrary.noteFor(anchors, midi)?.let { (smp, r) ->
+                                                    engine.play(smp, engine.bassGain, 0, r)
+                                                }
+                                            }
+                                            bassVersion++
+                                        }
+                                    },
+                            )
+                        }
+                    }
+                }
+            }
+            var bassLevel by remember { mutableStateOf(engine.bassGain) }
+            LabeledSlider("Level", "${(bassLevel * 100).toInt()}%", bassLevel, 0f..1.5f) {
+                bassLevel = it
+                engine.bassGain = it
+            }
+            Text(
+                "One note per step, choked like a real mono bass synth. " +
+                    "Auto-Bass writes a line that locks to your kick pattern. " +
+                    "Basslines are saved per pattern (A-D) and follow Chain mode.",
                 fontSize = 12.sp,
                 color = Color.White.copy(alpha = 0.7f),
                 textAlign = TextAlign.Center,

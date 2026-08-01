@@ -59,6 +59,15 @@ object ProjectStore {
             val accs = JSONArray()
             for (a in engine.accents) accs.put(packPattern(a))
             o.put("accents", accs)
+            val basses = JSONArray()
+            for (b in engine.basslines) {
+                val row = JSONArray()
+                for (n in b) row.put(n)
+                basses.put(row)
+            }
+            o.put("basslines", basses)
+            o.put("bassBank", engine.bassBank)
+            o.put("bassGain", engine.bassGain.toDouble())
             File(context.filesDir, "project.json").writeText(o.toString())
 
             for (i in 0 until AudioEngine.MIC_SLOTS) {
@@ -106,6 +115,16 @@ object ProjectStore {
                         unpackPattern(accs.getJSONArray(i), engine.accents[i])
                     }
                 }
+                o.optJSONArray("basslines")?.let { basses ->
+                    for (i in 0 until minOf(basses.length(), engine.basslines.size)) {
+                        val row = basses.getJSONArray(i)
+                        for (s in 0 until minOf(row.length(), engine.basslines[i].size)) {
+                            engine.basslines[i][s] = row.optInt(s, -1)
+                        }
+                    }
+                }
+                engine.bassBank = o.optString("bassBank", "808")
+                engine.bassGain = o.optDouble("bassGain", 1.0).toFloat()
                 engine.patternFlow.value = engine.currentPattern
             }
         } catch (_: Exception) {

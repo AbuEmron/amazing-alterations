@@ -30,8 +30,16 @@ class AudioEngine {
         private const val BUF_FRAMES = 512
     }
 
-    private class Voice(val sample: FloatArray, val gain: Float, var offset: Int, val rate: Float) {
+    private class Voice(
+        val sample: FloatArray,
+        val gain: Float,
+        var offset: Int,
+        val rate: Float,
+        val choke: Boolean = false,
+    ) {
         var pos = 0.0
+        var fading = false
+        var fadeRamp = 1f
     }
 
     private val lock = Any()
@@ -55,6 +63,12 @@ class AudioEngine {
     /** The active pattern/accents - all UI editing goes through these. */
     val pattern: Array<BooleanArray> get() = patterns[currentPattern]
     val accent: Array<BooleanArray> get() = accents[currentPattern]
+
+    /** Bass Station: per-pattern monophonic bassline (MIDI note per step, -1 = off). */
+    val basslines = Array(PATTERNS) { IntArray(STEPS) { -1 } }
+    val bassline: IntArray get() = basslines[currentPattern]
+    @Volatile var bassBank = "808"
+    @Volatile var bassGain = 1f
 
     /* per-track mixer */
     val trackGain = FloatArray(TRACKS) { 1f }
@@ -214,13 +228,21 @@ class AudioEngine {
                     while (out < BUF_FRAMES && p < s.size - 1) {
                         val i0 = p.toInt()
                         val frac = (p - i0).toFloat()
-                        mix[out] += (s[i0] + (s[i0 + 1] - s[i0]) * frac) * v.gain
+                        var g = v.gain
+                        if (v.fading) {
+                            v.fadeRamp -= 0.004f    // ~6 ms choke fade, no clicks
+                            if (v.fadeRamp <= 0f) break
+                            g *= v.fadeRamp
+                        }
+                        mix[out] += (s[i0] + (s[i0 + 1] - s[i0]) * frac) * g
                         out++
                         p += r
                     }
                     v.pos = p
                     v.offset = 0
-                    if (p >= s.size - 1) voices.removeAt(i) else i++
+                    if (p >= s.size - 1 || (v.fading && v.fadeRamp <= 0f)) {
+                        voices.removeAt(i)
+                    } else i++
                 }
                 frameClock += BUF_FRAMES
             }
@@ -313,6 +335,15 @@ class AudioEngine {
                         val g = (if (acc[t][step]) 1.25f else 0.9f) * trackGain[t]
                         voices.add(Voice(s, g, offset, 1f))
                     }
+                }
+            }
+            val bassNote = basslines[currentPattern][step]
+            if (bassNote >= 0 && voices.size < MAX_VOICES) {
+                val anchors = Synth.bassBanks[bassBank]?.second ?: Synth.subAnchors
+                SampleLibrary.noteFor(anchors, bassNote)?.let { (s, r) ->
+                    // monophonic: choke the previous bass note
+                    for (v in voices) if (v.choke) v.fading = true
+                    voices.add(Voice(s, bassGain, offset, r, choke = true))
                 }
             }
             if (metronome && step % 4 == 0 && voices.size < MAX_VOICES) {

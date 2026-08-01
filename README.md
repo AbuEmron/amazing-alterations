@@ -16,6 +16,7 @@ Two versions live in this repo:
 | **Pads** | 12 performance pads — kick, snare, hats, FX. Switch between the synth kit, a real TR-808, and orchestral percussion. |
 | **Step Sequencer** | 16 steps × 8 tracks × **4 chainable patterns (A–D)** with BPM, swing, per-step **accents** (long-press), and a metronome. **Chain** mode plays patterns in sequence — song arrangement on one screen. |
 | **Keys** | Pentatonic quick keys or a **full 88-key piano** (A0–C8, real Salamander samples across the range), playable as grand piano, glockenspiel, marimba, synth, or **808-style sub bass** — with **Smart Chords** auto-harmonization. |
+| **Bass Station** | Six bass instruments (808, Sub, Reese, Square, Pluck, Growl) with a 16-step pitch sequencer per pattern, mono note choking, and **Auto-Bass** — one tap writes a bassline locked to your kick. |
 | **Slicer** | Chop any recorded sample into 4/8/16 playable slices and perform them like an MPC. |
 | **Mixer & FX** | Per-track level and mute, master **reverb**, and **tempo-synced delay** — all feeding the auto-master chain. |
 | **Sampler** | Hold-to-record mic sampler; two sample slots feed the sequencer as extra tracks. |
