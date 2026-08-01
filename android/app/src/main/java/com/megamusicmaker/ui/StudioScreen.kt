@@ -177,6 +177,12 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
     var bassVersion by remember { mutableStateOf(0) }
     var bassBankSel by remember { mutableStateOf(engine.bassBank) }
     var tab by remember { mutableStateOf(0) }
+    var magicChords by remember { mutableStateOf(false) }
+    var chordLabel by remember { mutableStateOf("") }
+    var fullKeys by remember { mutableStateOf(false) }
+    var sliceSrc by remember { mutableStateOf(0) }
+    var sliceCount by remember { mutableStateOf(8) }
+    val songs = remember { mutableStateListOf<Pair<String, Uri>>() }
 
     // Voice Booth state lives at screen level so collapsing the section can
     // never interrupt an active recording or lose takes
@@ -234,12 +240,6 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
             }
         }
     }
-    var magicChords by remember { mutableStateOf(false) }
-    var chordLabel by remember { mutableStateOf("") }
-    var fullKeys by remember { mutableStateOf(false) }
-    var sliceSrc by remember { mutableStateOf(0) }
-    var sliceCount by remember { mutableStateOf(8) }
-    val songs = remember { mutableStateListOf<Pair<String, Uri>>() }
     val currentStep by engine.stepFlow.collectAsState()
     val libLoaded by library.loaded.collectAsState()
     val livePattern by engine.patternFlow.collectAsState()
