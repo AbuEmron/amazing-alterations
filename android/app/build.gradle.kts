@@ -16,9 +16,22 @@ android {
         versionName = "1.0"
     }
 
+    // Convenience keystore committed for personal sideloading builds so every
+    // CI APK is signed consistently and updates install over each other.
+    // NOT suitable for store distribution - generate a private key for that.
+    signingConfigs {
+        create("release") {
+            storeFile = rootProject.file("keystore/release.keystore")
+            storePassword = "pocketstudio"
+            keyAlias = "pocketstudio"
+            keyPassword = "pocketstudio"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 
