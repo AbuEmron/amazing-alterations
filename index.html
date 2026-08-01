@@ -273,6 +273,7 @@
     <h2>🌈 Rainbow Piano — every note sounds great!</h2>
     <div class="chips" id="keyChips"></div>
     <div class="keys" id="keys"></div>
+    <p id="chordLabel" style="text-align:center; margin-top:10px; font-weight:bold; color:#ffd93d; min-height:1.2em;"></p>
   </section>
 
   <!-- MIC SAMPLER -->
@@ -606,15 +607,72 @@
     { f: 1318.5, color: '#ff6bd6', key: 'k' },
   ];
 
+  /* ---- Magic Chords: auto-corrects harmony for every note you play ---- */
+  let magicChords = false;
+  const CHORDS = [
+    { name: '🌞 C major', tones: [0, 2, 4] },
+    { name: '🌙 D minor', tones: [1, 3, 5] },
+    { name: '🌙 E minor', tones: [2, 4, 6] },
+    { name: '🌞 F major', tones: [3, 5, 0] },
+    { name: '🌞 G major', tones: [4, 6, 1] },
+    { name: '🌙 A minor', tones: [5, 0, 2] },
+  ];
+  // how naturally chord j follows chord i
+  const CHORD_FLOW = [
+    [1, 1, 1, 3, 3, 2], [1, 0, 0, 1, 3, 1], [1, 1, 0, 2, 1, 2],
+    [3, 1, 0, 1, 3, 1], [3, 0, 1, 1, 1, 2], [1, 2, 1, 3, 2, 1],
+  ];
+  const KEY_DEGREES = [0, 1, 2, 4, 5, 0, 1, 2];  // pentatonic keys -> scale degrees
+  const CHORD_FREQS = [261.63, 293.66, 329.63, 349.23, 392.0, 440.0, 493.88]; // C4..B4
+  const CHORD_SEMIS = [-12, -10, -8, -7, -5, -3, -1]; // shift from the C5 sample
+  let lastChord = 0;
+
+  function pickChord(degree) {
+    let best = 0, bestScore = -1e9;
+    for (let i = 0; i < CHORDS.length; i++) {
+      let s = CHORD_FLOW[lastChord][i] + Math.floor(Math.random() * 2);
+      if (CHORDS[i].tones.includes(degree)) s += 5;
+      if (i === lastChord) s -= 1;
+      if (s > bestScore) { bestScore = s; best = i; }
+    }
+    lastChord = best;
+    return CHORDS[best];
+  }
+
+  function playChordTone(degree, t, gain) {
+    if (currentKeys === 'piano' && premium['piano_n0']) {
+      const src = ctx.createBufferSource();
+      src.buffer = premium['piano_n0'];
+      src.playbackRate.value = Math.pow(2, CHORD_SEMIS[degree] / 12);
+      const g = ctx.createGain();
+      g.gain.value = gain;
+      src.connect(g);
+      g.connect(master);
+      src.start(t);
+    } else {
+      const f = CHORD_FREQS[degree];
+      tone(t, 'sine', f, f, 1.0, gain * 0.6);
+      tone(t, 'sine', f * 2, f * 2, 0.5, gain * 0.15);
+    }
+  }
+
   function playNote(freq, idx) {
     audio();
     const t = ctx.currentTime;
     if (currentKeys === 'piano' && idx !== undefined) {
       const buf = premium['piano_n' + idx];
-      if (buf) { playBuffer(buf, t, 0.9); return; }
+      if (buf) playBuffer(buf, t, 0.9);
+      else { tone(t, 'sine', freq, freq, 0.7, 0.5); tone(t, 'sine', freq * 2, freq * 2, 0.4, 0.12); }
+    } else {
+      tone(t, 'sine', freq, freq, 0.7, 0.5);
+      tone(t, 'sine', freq * 2, freq * 2, 0.4, 0.12);
     }
-    tone(t, 'sine', freq, freq, 0.7, 0.5);
-    tone(t, 'sine', freq * 2, freq * 2, 0.4, 0.12);
+    if (magicChords && idx !== undefined) {
+      const chord = pickChord(KEY_DEGREES[idx]);
+      chord.tones.forEach((deg, k) => playChordTone(deg, t + k * 0.03, 0.45));
+      const label = document.getElementById('chordLabel');
+      if (label) label.textContent = chord.name + '!';
+    }
   }
 
   const keysBox = document.getElementById('keys');
@@ -793,6 +851,24 @@
     mkChip(keyChips, '🤖 Synth', false, b => { currentKeys = 'synth'; select(keyChips, b); });
     mkChip(keyChips, '🎹 Grand Piano', true, b => { currentKeys = 'piano'; select(keyChips, b); });
     currentKeys = 'piano';
+  }
+
+  /* Magic Chords toggle - works with synth AND sampled instruments */
+  {
+    const keyChips = document.getElementById('keyChips');
+    const b = document.createElement('button');
+    b.className = 'chip';
+    b.textContent = '✨ Magic Chords';
+    b.addEventListener('pointerdown', () => {
+      audio();
+      magicChords = !magicChords;
+      lastChord = 0;
+      b.classList.toggle('sel', magicChords);
+      b.textContent = magicChords ? '✨ Magic Chords ON' : '✨ Magic Chords';
+      const label = document.getElementById('chordLabel');
+      if (label) label.textContent = magicChords ? 'Play a key — I\'ll pick the perfect chord! 🧙' : '';
+    });
+    keyChips.appendChild(b);
   }
 
   /* unlock audio on the very first touch anywhere (mobile browsers) */

@@ -22,7 +22,13 @@ class DrumKit(
     val bonus2: FloatArray, val bonus2Emoji: String, val bonus2Label: String,
 )
 
-class MelodicBank(val id: String, val label: String, val notes: Array<FloatArray>)
+class MelodicBank(
+    val id: String,
+    val label: String,
+    val notes: Array<FloatArray>,
+    /** One octave C4..B4 (degrees 0..6) for Magic Chords accompaniment. */
+    val chordNotes: Array<FloatArray>,
+)
 
 class SampleLibrary(private val assets: AssetManager) {
 
@@ -49,9 +55,9 @@ class SampleLibrary(private val assets: AssetManager) {
         val glock = notes("glock")
         val marimba = notes("marimba")
         melodic = listOf(
-            MelodicBank("piano", "🎹 Piano", piano),
-            MelodicBank("glock", "✨ Bells", glock),
-            MelodicBank("marimba", "🪵 Marimba", marimba),
+            MelodicBank("piano", "🎹 Piano", piano, chordOctave(piano[0])),
+            MelodicBank("glock", "✨ Bells", glock, chordOctave(glock[0])),
+            MelodicBank("marimba", "🪵 Marimba", marimba, chordOctave(marimba[0])),
         )
         kits = listOf(
             DrumKit(
@@ -84,6 +90,27 @@ class SampleLibrary(private val assets: AssetManager) {
     }
 
     private fun notes(dir: String) = Array(8) { wav("samples/$dir/n$it.wav") }
+
+    /** Semitone offsets from the bank's C5 sample down to C4..B4. */
+    private val chordSemis = intArrayOf(-12, -10, -8, -7, -5, -3, -1)
+
+    private fun chordOctave(c5: FloatArray) = Array(7) { resample(c5, chordSemis[it]) }
+
+    /** Varispeed pitch shift by linear interpolation - fine for a chord bed. */
+    private fun resample(src: FloatArray, semis: Int): FloatArray {
+        val ratio = Math.pow(2.0, semis / 12.0)
+        val n = (src.size / ratio).toInt().coerceAtLeast(1)
+        val out = FloatArray(n)
+        for (i in out.indices) {
+            val pos = i * ratio
+            val i0 = pos.toInt()
+            val frac = (pos - i0).toFloat()
+            val a = if (i0 < src.size) src[i0] else 0f
+            val b = if (i0 + 1 < src.size) src[i0 + 1] else 0f
+            out[i] = a + (b - a) * frac
+        }
+        return out
+    }
 
     /** Minimal RIFF parser for our own bundled files (44.1 kHz mono 16-bit PCM). */
     private fun wav(path: String): FloatArray {

@@ -197,15 +197,21 @@ object Synth {
 
     private val pianoFreqs = doubleArrayOf(523.25, 587.33, 659.25, 783.99, 880.0, 1046.5, 1174.7, 1318.5)
 
-    val piano: Array<FloatArray> = Array(pianoFreqs.size) { i ->
-        val f = pianoFreqs[i]
-        val out = buf(0.8)
+    private fun melodicNote(f: Double, dur: Double): FloatArray {
+        val out = buf(dur)
         for (n in out.indices) {
             val t = n.toDouble() / SR
-            val v = sin(2 * PI * f * t) * expEnv(t, 0.8, 5.0) +
-                0.25 * sin(4 * PI * f * t) * expEnv(t, 0.8, 9.0)
+            val v = sin(2 * PI * f * t) * expEnv(t, dur, 5.0) +
+                0.25 * sin(4 * PI * f * t) * expEnv(t, dur, 9.0)
             out[n] = v.toFloat()
         }
-        normalize(out, 0.6f)
+        return normalize(out, 0.6f)
     }
+
+    val piano: Array<FloatArray> = Array(pianoFreqs.size) { melodicNote(pianoFreqs[it], 0.8) }
+
+    /** One octave C4..B4 for Magic Chords accompaniment. */
+    private val chordFreqs = doubleArrayOf(261.63, 293.66, 329.63, 349.23, 392.0, 440.0, 493.88)
+
+    val chordNotes: Array<FloatArray> = Array(chordFreqs.size) { melodicNote(chordFreqs[it], 1.1) }
 }

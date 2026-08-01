@@ -77,10 +77,11 @@ class AudioEngine {
         }
     }
 
-    fun play(sample: FloatArray?, gain: Float = 1f) {
+    fun play(sample: FloatArray?, gain: Float = 1f, delayMs: Int = 0) {
         if (sample == null) return
+        val offset = delayMs * SR / 1000
         synchronized(lock) {
-            if (voices.size < MAX_VOICES) voices.add(Voice(sample, gain, 0))
+            if (voices.size < MAX_VOICES) voices.add(Voice(sample, gain, offset))
         }
     }
 
@@ -171,6 +172,12 @@ class AudioEngine {
                 var i = 0
                 while (i < voices.size) {
                     val v = voices[i]
+                    if (v.offset >= BUF_FRAMES) {
+                        // Strum/delay: not due yet in this buffer
+                        v.offset -= BUF_FRAMES
+                        i++
+                        continue
+                    }
                     val s = v.sample
                     var out = v.offset
                     var p = v.pos

@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.megamusicmaker.audio.AudioEngine
+import com.megamusicmaker.audio.ChordBrain
 import com.megamusicmaker.audio.MicSampler
 import com.megamusicmaker.audio.SampleLibrary
 import com.megamusicmaker.audio.Synth
@@ -107,6 +108,9 @@ private val keyEmojis = listOf(
 
 private val micEmojis = listOf("🦖", "🐱", "🚀", "🎉")
 
+/** Scale degree (0..6 = C..B) of each rainbow key - pentatonic C D E G A C D E. */
+private val keyDegrees = intArrayOf(0, 1, 2, 4, 5, 0, 1, 2)
+
 /* ---------- main screen ---------- */
 
 @Composable
@@ -122,6 +126,8 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
     var isRecording by remember { mutableStateOf(false) }
     var kitId by remember { mutableStateOf("synth") }
     var melodicId by remember { mutableStateOf("piano") }
+    var magicChords by remember { mutableStateOf(false) }
+    var chordLabel by remember { mutableStateOf("") }
     val songs = remember { mutableStateListOf<Pair<String, Uri>>() }
     val currentStep by engine.stepFlow.collectAsState()
     val libLoaded by library.loaded.collectAsState()
@@ -261,6 +267,30 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
                 }
             }
             Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 10.dp),
+            ) {
+                Chip(
+                    if (magicChords) "✨ Magic Chords ON" else "✨ Magic Chords",
+                    magicChords,
+                ) {
+                    magicChords = !magicChords
+                    chordLabel = ""
+                    if (magicChords) ChordBrain.reset()
+                }
+                if (magicChords && chordLabel.isNotEmpty()) {
+                    Text(
+                        chordLabel,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFFFD93D),
+                    )
+                }
+            }
+            Row(
                 horizontalArrangement = Arrangement.spacedBy(5.dp),
                 verticalAlignment = Alignment.Bottom,
                 modifier = Modifier.height(150.dp),
@@ -269,9 +299,30 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
                     Box(Modifier.weight(1f)) {
                         PianoKey(keyEmojis[i], keyColors[i], (150 - i * 9).dp) {
                             engine.play(melodicNotes?.get(i) ?: Synth.piano[i], 0.9f)
+                            if (magicChords) {
+                                val chord = ChordBrain.pick(keyDegrees[i])
+                                val bank = (if (libLoaded) {
+                                    library.melodic.find { it.id == melodicId }?.chordNotes
+                                } else null) ?: Synth.chordNotes
+                                chord.tones.forEachIndexed { k, deg ->
+                                    engine.play(bank[deg], 0.45f, k * 30)
+                                }
+                                chordLabel = chord.display
+                            }
                         }
                     }
                 }
+            }
+            if (magicChords) {
+                Text(
+                    "Every note you play gets the perfect chord underneath — automatically! 🧙",
+                    fontSize = 12.sp,
+                    color = Color.White.copy(alpha = 0.7f),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 6.dp),
+                )
             }
         }
 
