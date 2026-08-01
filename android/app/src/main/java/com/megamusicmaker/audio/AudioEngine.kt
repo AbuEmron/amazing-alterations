@@ -235,20 +235,21 @@ class AudioEngine {
 
     private var hpState = 0f
     private var compEnv = 0f
-    private val hpCoef = (2.0 * Math.PI * 25.0 / SR).toFloat()          // ~25 Hz rumble cut
-    private val attackCoef = Math.exp(-1.0 / (0.005 * SR)).toFloat()    // 5 ms attack
-    private val releaseCoef = Math.exp(-1.0 / (0.12 * SR)).toFloat()    // 120 ms release
+    private val hpCoef = (2.0 * Math.PI * 18.0 / SR).toFloat()          // ~18 Hz rumble cut (below 808 territory)
+    private val attackCoef = Math.exp(-1.0 / (0.010 * SR)).toFloat()    // 10 ms attack - lets transients punch
+    private val releaseCoef = Math.exp(-1.0 / (0.25 * SR)).toFloat()    // 250 ms release - no pumping on long 808 decays
 
     private fun master(mix: FloatArray) {
-        val threshold = 0.45f
-        val invRatio = 1f / 3f
-        val makeup = 1.35f
+        val threshold = 0.6f
+        val invRatio = 1f / 2.5f
+        val makeup = 1.15f
+        val knee = 0.85f
         for (j in mix.indices) {
             var x = mix[j]
             // one-pole high-pass removes sub-sonic rumble before compression
             hpState += hpCoef * (x - hpState)
             x -= hpState
-            // program compressor with envelope follower
+            // gentle program compressor with envelope follower
             val level = if (x >= 0) x else -x
             compEnv = if (level > compEnv) {
                 attackCoef * compEnv + (1 - attackCoef) * level
@@ -259,8 +260,16 @@ class AudioEngine {
             if (compEnv > threshold) {
                 y *= (threshold + (compEnv - threshold) * invRatio) / compEnv
             }
-            // makeup gain + soft limiter
-            mix[j] = tanh(y * makeup)
+            y *= makeup
+            // transparent limiter: PERFECTLY LINEAR below the knee, so clean
+            // low sines (808 kick, sub bass) keep their character; only true
+            // peaks get soft-saturated
+            val a = if (y >= 0) y else -y
+            if (a > knee) {
+                val soft = knee + (1f - knee) * tanh((a - knee) / (1f - knee))
+                y = if (y >= 0) soft else -soft
+            }
+            mix[j] = y
         }
     }
 
