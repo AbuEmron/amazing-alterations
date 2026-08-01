@@ -31,6 +31,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -147,6 +148,24 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
     var chainOn by remember { mutableStateOf(engine.chain) }
     var clickOn by remember { mutableStateOf(engine.metronome) }
     var mixerVersion by remember { mutableStateOf(0) }
+
+    // Voice Booth state lives at screen level so collapsing the section can
+    // never interrupt an active recording or lose takes
+    val vocalSampler = remember { MicSampler() }
+    var vocalRecording by remember { mutableStateOf(false) }
+    var vocalProcessing by remember { mutableStateOf(false) }
+    var vocalElapsed by remember { mutableStateOf(0) }
+    val vocalTakes = remember { mutableStateListOf<Triple<String, Uri, FloatArray>>() }
+    val vocalPerm = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { }
+    LaunchedEffect(vocalRecording) {
+        vocalElapsed = 0
+        while (vocalRecording) {
+            delay(1000)
+            vocalElapsed++
+        }
+    }
     var magicChords by remember { mutableStateOf(false) }
     var chordLabel by remember { mutableStateOf("") }
     var fullKeys by remember { mutableStateOf(false) }
@@ -198,8 +217,9 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
         modifier = Modifier
             .fillMaxSize()
             .background(Brush.verticalGradient(listOf(BgTop, BgMid, BgBot)))
+            .safeDrawingPadding()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 12.dp, vertical = 24.dp),
+            .padding(horizontal = 12.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(
@@ -318,7 +338,7 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
             )
         }
 
-        Section("Mixer & FX") {
+        Section("Mixer & FX", initiallyExpanded = false) {
             @Suppress("UNUSED_EXPRESSION") mixerVersion
             for (t in 0 until AudioEngine.TRACKS) {
                 Row(
@@ -351,8 +371,7 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
                         ),
                         modifier = Modifier
                             .weight(1f)
-                            .padding(horizontal = 8.dp)
-                            .height(28.dp),
+                            .padding(horizontal = 8.dp),
                     )
                 }
             }
@@ -488,7 +507,7 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
             }
         }
 
-        Section("Slicer") {
+        Section("Slicer", initiallyExpanded = false) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
                 modifier = Modifier
@@ -579,22 +598,7 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
             )
         }
 
-        Section("Voice Booth") {
-            val vocalSampler = remember { MicSampler() }
-            var vocalRecording by remember { mutableStateOf(false) }
-            var vocalProcessing by remember { mutableStateOf(false) }
-            var vocalElapsed by remember { mutableStateOf(0) }
-            val vocalTakes = remember { mutableStateListOf<Triple<String, Uri, FloatArray>>() }
-            val vocalPerm = rememberLauncherForActivityResult(
-                ActivityResultContracts.RequestPermission()
-            ) { }
-            LaunchedEffect(vocalRecording) {
-                vocalElapsed = 0
-                while (vocalRecording) {
-                    delay(1000)
-                    vocalElapsed++
-                }
-            }
+        Section("Voice Booth", initiallyExpanded = false) {
             Row(
                 horizontalArrangement = Arrangement.Center,
                 modifier = Modifier.fillMaxWidth(),
@@ -765,7 +769,12 @@ fun StudioScreen(engine: AudioEngine, library: SampleLibrary) {
 /* ---------- pieces ---------- */
 
 @Composable
-private fun Section(title: String, content: @Composable ColumnScope.() -> Unit) {
+private fun Section(
+    title: String,
+    initiallyExpanded: Boolean = true,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    var expanded by remember { mutableStateOf(initiallyExpanded) }
     Column(
         Modifier
             .fillMaxWidth()
@@ -773,17 +782,28 @@ private fun Section(title: String, content: @Composable ColumnScope.() -> Unit) 
             .background(CardBg)
             .padding(14.dp),
     ) {
-        Text(
-            title,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.White,
-            textAlign = TextAlign.Center,
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 10.dp),
-        )
-        content()
+                .pointerInput(title) { detectTapGestures { expanded = !expanded } }
+                .padding(bottom = if (expanded) 10.dp else 0.dp),
+        ) {
+            Text(
+                title,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                if (expanded) "▾" else "▸",
+                fontSize = 18.sp,
+                color = Color.White.copy(alpha = 0.6f),
+            )
+        }
+        if (expanded) content()
     }
 }
 
@@ -940,7 +960,7 @@ private fun SequencerGrid(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
                             .padding(2.dp)
-                            .size(30.dp)
+                            .size(34.dp)
                             .clip(RoundedCornerShape(7.dp))
                             .background(cellBg)
                             .then(
